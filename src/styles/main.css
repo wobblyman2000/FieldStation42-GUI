@@ -402,6 +402,8 @@ body {
 .tag-streaming { color: var(--accent-emerald); border-color: rgba(0, 230, 118, 0.3); }
 .tag-web { color: #38bdf8; border-color: rgba(56, 189, 248, 0.3); }
 .tag-executable { color: var(--accent-rose); border-color: rgba(255, 42, 109, 0.3); }
+.tag-ppv { color: #f43f5e; border-color: rgba(244, 63, 94, 0.4); }
+.tag-audio { color: #f59e0b; border-color: rgba(245, 158, 11, 0.4); }
 
 .sidebar-footer {
   padding: 10px 14px;

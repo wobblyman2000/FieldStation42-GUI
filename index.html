@@ -83,6 +83,7 @@
             <button class="chip" data-filter="standard">Std</button>
             <button class="chip" data-filter="loop">Loop</button>
             <button class="chip" data-filter="ppv">PPV</button>
+            <button class="chip" data-filter="audio">Audio</button>
             <button class="chip" data-filter="guide">Guide</button>
             <button class="chip" data-filter="streaming">Stream</button>
             <button class="chip" data-filter="web">Web</button>
@@ -171,6 +172,7 @@
                 <select id="input-network-type" class="form-select">
                   <option value="standard">Standard (Scheduled TV)</option>
                   <option value="loop">Loop (Continuous Directory)</option>
+                  <option value="audio">Audio (Retro Radio / Music Station)</option>
                   <option value="guide">Guide (Interactive TV Guide)</option>
                   <option value="web">Web (Webpage Stream)</option>
                   <option value="ppv">Pay-Per-View (On Demand PPV)</option>
@@ -761,6 +763,13 @@
               <h4>Arcade & Executable Channel</h4>
               <p>Launch an external emulator, script, or retro application when tuning into this channel.</p>
               <span class="recipe-tag">executable</span>
+            </div>
+
+            <div class="recipe-card" data-recipe="audio-radio">
+              <div class="recipe-icon"><i class="ri-volume-up-line"></i></div>
+              <h4>Retro Radio & Music Station</h4>
+              <p>24/7 Audio & music channel (.mp3, .flac, .wav) with retro Now Playing visualizer overlay.</p>
+              <span class="recipe-tag" style="color: #f59e0b; border-color: rgba(245, 158, 11, 0.4);">audio</span>
             </div>
           </div>
         </div>
