@@ -213,8 +213,8 @@
           <!-- TAB 2: Content & Sources -->
           <div class="tab-pane" id="tab-content">
             <form id="form-content" class="form-grid">
-              <!-- Content Dir Section (Standard / Loop) -->
-              <div class="form-group col-12 content-type-sec sec-standard sec-loop">
+              <!-- Content Dir Section (Standard / Loop / Audio / PPV) -->
+              <div class="form-group col-12 content-type-sec sec-standard sec-loop sec-audio sec-ppv">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                   <label for="input-content-dir">Content Directory (`content_dir`)</label>
                   <button type="button" class="btn btn-sm btn-ghost" id="btn-quick-import-media" style="color: var(--primary-cyan);">
@@ -222,12 +222,12 @@
                   </button>
                 </div>
                 <div class="input-with-action">
-                  <input type="text" id="input-content-dir" class="form-input" placeholder="catalog/cartoons/ or /media/tv/cartoons" />
+                  <input type="text" id="input-content-dir" class="form-input" placeholder="catalog/music/ or /media/audio/podcasts" />
                   <button type="button" class="btn btn-secondary btn-browse-dir-target" data-target="input-content-dir">
                     <i class="ri-folder-open-line"></i> Browse Folder
                   </button>
                 </div>
-                <span class="field-hint">Path to folder containing video files for this channel.</span>
+                <span class="field-hint">Path to folder containing video or audio files for this channel.</span>
               </div>
 
               <!-- Streaming URL Section -->

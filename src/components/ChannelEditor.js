@@ -144,15 +144,17 @@ export class ChannelEditor {
     const secs = document.querySelectorAll('.content-type-sec');
     secs.forEach(sec => sec.classList.add('hidden'));
 
-    if (type === 'standard' || type === 'loop') {
-      document.querySelectorAll('.sec-standard, .sec-loop').forEach(s => s.classList.remove('hidden'));
-    } else if (type === 'streaming') {
+    const normalizedType = (type || 'standard').toLowerCase();
+
+    if (['standard', 'loop', 'audio', 'ppv'].includes(normalizedType)) {
+      document.querySelectorAll('.sec-standard, .sec-loop, .sec-audio, .sec-ppv').forEach(s => s.classList.remove('hidden'));
+    } else if (normalizedType === 'streaming') {
       document.querySelectorAll('.sec-streaming').forEach(s => s.classList.remove('hidden'));
-    } else if (type === 'web') {
+    } else if (normalizedType === 'web') {
       document.querySelectorAll('.sec-web').forEach(s => s.classList.remove('hidden'));
-    } else if (type === 'executable') {
+    } else if (normalizedType === 'executable') {
       document.querySelectorAll('.sec-executable').forEach(s => s.classList.remove('hidden'));
-    } else if (type === 'guide') {
+    } else if (normalizedType === 'guide') {
       document.querySelectorAll('.sec-guide').forEach(s => s.classList.remove('hidden'));
     }
   }
