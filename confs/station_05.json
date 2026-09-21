@@ -1,0 +1,11 @@
+{
+  "station_conf": {
+    "network_name": "Retro Animation Network",
+    "channel_number": 5,
+    "network_type": "standard",
+    "call_sign": "WRET-TV",
+    "content_dir": "catalog/cartoons",
+    "commercials_dir": "runtime/commercials/",
+    "commercial_free": false
+  }
+}

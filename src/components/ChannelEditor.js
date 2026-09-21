@@ -1,0 +1,747 @@
+export class ChannelEditor {
+  constructor(onChannelUpdatedCallback, onSaveCallback, onDeleteCallback, onDuplicateCallback) {
+    this.onChannelUpdatedCallback = onChannelUpdatedCallback;
+    this.onSaveCallback = onSaveCallback;
+    this.onDeleteCallback = onDeleteCallback;
+    this.onDuplicateCallback = onDuplicateCallback;
+
+    this.currentChannel = null;
+    this.activeTab = 'tab-general';
+    this.isUpdatingFromForm = false;
+    this.isUpdatingFromCode = false;
+
+    this.initTabs();
+    this.initFormBindings();
+    this.initJsonInspector();
+    this.initActionButtons();
+  }
+
+  initTabs() {
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        tabBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const targetTab = btn.dataset.tab;
+        this.activeTab = targetTab;
+        document.querySelectorAll('.tab-pane').forEach(pane => {
+          pane.classList.toggle('active', pane.id === targetTab);
+        });
+
+        if (targetTab === 'tab-code') {
+          this.syncJsonCodeFromModel();
+        } else if (targetTab === 'tab-epg') {
+          this.loadUpcomingSchedule();
+        } else if (targetTab === 'tab-ppv') {
+          this.loadPpvCatalog();
+        }
+      });
+    });
+
+    const btnRefreshEpg = document.getElementById('btn-refresh-epg-schedule');
+    if (btnRefreshEpg) {
+      btnRefreshEpg.addEventListener('click', () => this.loadUpcomingSchedule());
+    }
+
+    const btnRebuildEpg = document.getElementById('btn-rebuild-epg-catalog');
+    if (btnRebuildEpg) {
+      btnRebuildEpg.addEventListener('click', () => this.rebuildCurrentChannelCatalog());
+    }
+
+    const btnRebuildStation = document.getElementById('btn-rebuild-station-catalog');
+    if (btnRebuildStation) {
+      btnRebuildStation.addEventListener('click', () => this.rebuildCurrentChannelCatalog());
+    }
+
+    const btnRefreshPpv = document.getElementById('btn-refresh-ppv-catalog');
+    if (btnRefreshPpv) {
+      btnRefreshPpv.addEventListener('click', () => this.loadPpvCatalog());
+    }
+
+    const btnGenerateMeta = document.getElementById('btn-generate-ppv-meta');
+    if (btnGenerateMeta) {
+      btnGenerateMeta.addEventListener('click', () => this.generatePpvMetadata());
+    }
+
+    const btnImportPpv = document.getElementById('btn-import-ppv-movies');
+    if (btnImportPpv) {
+      btnImportPpv.addEventListener('click', () => {
+        const modal = document.getElementById('modal-media-importer');
+        if (modal) {
+          const folderInput = document.getElementById('import-target-folder');
+          if (folderInput) folderInput.value = 'ppv';
+          modal.classList.remove('hidden');
+        }
+      });
+    }
+  }
+
+  initFormBindings() {
+    // Input elements
+    this.inputName = document.getElementById('input-network-name');
+    this.inputNum = document.getElementById('input-channel-number');
+    this.inputType = document.getElementById('input-network-type');
+    this.inputCallSign = document.getElementById('input-call-sign');
+    this.inputDesc = document.getElementById('input-station-desc');
+    this.inputParental = document.getElementById('input-parental-controls');
+
+    this.inputContentDir = document.getElementById('input-content-dir');
+    this.inputStreamUrl = document.getElementById('input-stream-url');
+    this.inputWebUrl = document.getElementById('input-web-url');
+    this.inputExecCmd = document.getElementById('input-exec-cmd');
+    this.inputCommercialDir = document.getElementById('input-commercial-dir');
+    this.inputBumpsDir = document.getElementById('input-station-bumps');
+
+    this.inputPlaySound = document.getElementById('input-play-sound');
+    this.inputSoundPath = document.getElementById('input-sound-path');
+
+    this.inputCommercialFree = document.getElementById('input-commercial-free');
+    this.inputAspectRatio = document.getElementById('input-aspect-ratio');
+    this.inputVideoScramble = document.getElementById('input-video-scramble');
+    this.inputAudioScramble = document.getElementById('input-audio-scramble');
+
+    // Attach listeners to sync back to data model reactively
+    const formElements = [
+      this.inputName, this.inputNum, this.inputType, this.inputCallSign,
+      this.inputDesc, this.inputParental, this.inputContentDir,
+      this.inputStreamUrl, this.inputWebUrl, this.inputExecCmd,
+      this.inputCommercialDir, this.inputBumpsDir, this.inputPlaySound,
+      this.inputSoundPath, this.inputCommercialFree, this.inputAspectRatio,
+      this.inputVideoScramble, this.inputAudioScramble
+    ];
+
+    formElements.forEach(el => {
+      if (!el) return;
+      const eventName = el.type === 'checkbox' || el.tagName === 'SELECT' ? 'change' : 'input';
+      el.addEventListener(eventName, () => {
+        if (this.isUpdatingFromCode || !this.currentChannel) return;
+        this.updateModelFromForm();
+      });
+    });
+
+    // Network type change visibility logic
+    if (this.inputType) {
+      this.inputType.addEventListener('change', () => {
+        this.updateVisibilityForNetworkType(this.inputType.value);
+      });
+    }
+
+    // Add Slot Override Button
+    const btnAddSlot = document.getElementById('btn-add-slot-override');
+    if (btnAddSlot) {
+      btnAddSlot.addEventListener('click', () => this.addSlotOverrideRow());
+    }
+
+    // Auto Generate 24/7 Schedule Template Button
+    const btnGenSchedule = document.getElementById('btn-generate-247-schedule');
+    if (btnGenSchedule) {
+      btnGenSchedule.addEventListener('click', () => this.generate247ScheduleTemplate());
+    }
+  }
+
+  updateVisibilityForNetworkType(type) {
+    const secs = document.querySelectorAll('.content-type-sec');
+    secs.forEach(sec => sec.classList.add('hidden'));
+
+    if (type === 'standard' || type === 'loop') {
+      document.querySelectorAll('.sec-standard, .sec-loop').forEach(s => s.classList.remove('hidden'));
+    } else if (type === 'streaming') {
+      document.querySelectorAll('.sec-streaming').forEach(s => s.classList.remove('hidden'));
+    } else if (type === 'web') {
+      document.querySelectorAll('.sec-web').forEach(s => s.classList.remove('hidden'));
+    } else if (type === 'executable') {
+      document.querySelectorAll('.sec-executable').forEach(s => s.classList.remove('hidden'));
+    } else if (type === 'guide') {
+      document.querySelectorAll('.sec-guide').forEach(s => s.classList.remove('hidden'));
+    }
+  }
+
+  initJsonInspector() {
+    this.jsonTextarea = document.getElementById('json-code-textarea');
+    this.validationStatus = document.getElementById('json-validation-status');
+
+    if (this.jsonTextarea) {
+      this.jsonTextarea.addEventListener('input', () => {
+        this.parseAndApplyJsonCode();
+      });
+    }
+
+    const btnCopy = document.getElementById('btn-copy-json');
+    if (btnCopy) {
+      btnCopy.addEventListener('click', () => {
+        if (this.jsonTextarea) {
+          navigator.clipboard.writeText(this.jsonTextarea.value);
+          this.showToast('Copied JSON to clipboard', 'info');
+        }
+      });
+    }
+
+    const btnFormat = document.getElementById('btn-format-json');
+    if (btnFormat) {
+      btnFormat.addEventListener('click', () => {
+        try {
+          const parsed = JSON.parse(this.jsonTextarea.value);
+          this.jsonTextarea.value = JSON.stringify(parsed, null, 2);
+          this.showToast('Formatted JSON code', 'info');
+        } catch (err) {
+          this.showToast('Cannot format invalid JSON', 'error');
+        }
+      });
+    }
+
+    const btnDownload = document.getElementById('btn-download-json');
+    if (btnDownload) {
+      btnDownload.addEventListener('click', () => {
+        const conf = this.currentChannel?.station_conf || {};
+        const chNum = conf.channel_number !== undefined ? String(conf.channel_number).padStart(2, '0') : '00';
+        const filename = `station_${chNum}.json`;
+        const blob = new Blob([this.jsonTextarea.value], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+    }
+  }
+
+  initActionButtons() {
+    const btnSave = document.getElementById('btn-save-channel');
+    if (btnSave) {
+      btnSave.addEventListener('click', () => {
+        if (this.onSaveCallback && this.currentChannel) {
+          this.onSaveCallback(this.currentChannel);
+        }
+      });
+    }
+
+    const btnDelete = document.getElementById('btn-delete-channel');
+    if (btnDelete) {
+      btnDelete.addEventListener('click', () => {
+        if (this.onDeleteCallback && this.currentChannel) {
+          this.onDeleteCallback(this.currentChannel);
+        }
+      });
+    }
+
+    const btnDuplicate = document.getElementById('btn-duplicate-channel');
+    if (btnDuplicate) {
+      btnDuplicate.addEventListener('click', () => {
+        if (this.onDuplicateCallback && this.currentChannel) {
+          this.onDuplicateCallback(this.currentChannel);
+        }
+      });
+    }
+  }
+
+  loadChannel(channel) {
+    this.currentChannel = channel;
+    const conf = channel.station_conf || {};
+
+    // Header Display
+    const chNumBadge = document.getElementById('edit-ch-num-badge');
+    const netNameTitle = document.getElementById('edit-network-name');
+    const typeTag = document.getElementById('edit-type-tag');
+
+    const chNumStr = conf.channel_number !== undefined ? String(conf.channel_number).padStart(2, '0') : '--';
+    if (chNumBadge) chNumBadge.textContent = `CH ${chNumStr}`;
+    if (netNameTitle) netNameTitle.textContent = conf.network_name || 'Unnamed Station';
+    if (typeTag) {
+      typeTag.textContent = (conf.network_type || 'standard').toUpperCase();
+      typeTag.className = `type-tag tag-${(conf.network_type || 'standard').toLowerCase()}`;
+    }
+
+    // Populate inputs
+    this.isUpdatingFromCode = true;
+
+    if (this.inputName) this.inputName.value = conf.network_name || '';
+    if (this.inputNum) this.inputNum.value = conf.channel_number !== undefined ? conf.channel_number : '';
+    if (this.inputType) this.inputType.value = conf.network_type || 'standard';
+    if (this.inputCallSign) this.inputCallSign.value = conf.call_sign || '';
+    if (this.inputDesc) this.inputDesc.value = conf.description || '';
+    if (this.inputParental) this.inputParental.checked = !!conf.parental_controls;
+
+    if (this.inputContentDir) this.inputContentDir.value = conf.content_dir || '';
+    if (this.inputStreamUrl) this.inputStreamUrl.value = conf.stream_url || '';
+    if (this.inputWebUrl) this.inputWebUrl.value = conf.web_url || '';
+    if (this.inputExecCmd) this.inputExecCmd.value = conf.exec_command || '';
+    if (this.inputCommercialDir) this.inputCommercialDir.value = conf.commercials_dir || '';
+    if (this.inputBumpsDir) this.inputBumpsDir.value = conf.bumps_dir || '';
+
+    if (this.inputPlaySound) this.inputPlaySound.checked = conf.play_sound !== false;
+    if (this.inputSoundPath) this.inputSoundPath.value = conf.sound_to_play || '';
+
+    if (this.inputCommercialFree) this.inputCommercialFree.checked = !!conf.commercial_free;
+    if (this.inputAspectRatio) this.inputAspectRatio.value = conf.aspect_ratio || '4:3';
+    if (this.inputVideoScramble) this.inputVideoScramble.value = conf.video_scramble_fx || 'none';
+    if (this.inputAudioScramble) this.inputAudioScramble.value = conf.audio_scramble_fx || 'none';
+
+    this.updateVisibilityForNetworkType(conf.network_type || 'standard');
+    this.renderSlotOverrides(conf.slot_overrides || []);
+    this.syncJsonCodeFromModel();
+
+    const jsonFileDisplay = document.getElementById('json-filename-display');
+    if (jsonFileDisplay) {
+      jsonFileDisplay.textContent = `station_${chNumStr}.json`;
+    }
+
+    this.isUpdatingFromCode = false;
+  }
+
+  updateModelFromForm() {
+    if (!this.currentChannel) return;
+
+    const conf = this.currentChannel.station_conf || {};
+
+    conf.network_name = this.inputName?.value || 'New Channel';
+    conf.channel_number = this.inputNum?.value ? parseInt(this.inputNum.value, 10) : 1;
+    conf.network_type = this.inputType?.value || 'standard';
+    conf.call_sign = this.inputCallSign?.value || '';
+    conf.description = this.inputDesc?.value || '';
+    conf.parental_controls = !!this.inputParental?.checked;
+
+    conf.content_dir = this.inputContentDir?.value || '';
+    conf.stream_url = this.inputStreamUrl?.value || '';
+    conf.web_url = this.inputWebUrl?.value || '';
+    conf.exec_command = this.inputExecCmd?.value || '';
+    conf.commercials_dir = this.inputCommercialDir?.value || '';
+    conf.bumps_dir = this.inputBumpsDir?.value || '';
+
+    conf.play_sound = !!this.inputPlaySound?.checked;
+    conf.sound_to_play = this.inputSoundPath?.value || '';
+
+    conf.commercial_free = !!this.inputCommercialFree?.checked;
+    conf.aspect_ratio = this.inputAspectRatio?.value || '4:3';
+    conf.video_scramble_fx = this.inputVideoScramble?.value || 'none';
+    conf.audio_scramble_fx = this.inputAudioScramble?.value || 'none';
+
+    this.currentChannel.station_conf = conf;
+
+    // Header badge reactive update
+    const chNumBadge = document.getElementById('edit-ch-num-badge');
+    const netNameTitle = document.getElementById('edit-network-name');
+    const typeTag = document.getElementById('edit-type-tag');
+
+    const chNumStr = conf.channel_number !== undefined ? String(conf.channel_number).padStart(2, '0') : '--';
+    if (chNumBadge) chNumBadge.textContent = `CH ${chNumStr}`;
+    if (netNameTitle) netNameTitle.textContent = conf.network_name;
+    if (typeTag) {
+      typeTag.textContent = conf.network_type.toUpperCase();
+      typeTag.className = `type-tag tag-${conf.network_type.toLowerCase()}`;
+    }
+
+    this.syncJsonCodeFromModel();
+
+    if (this.onChannelUpdatedCallback) {
+      this.onChannelUpdatedCallback(this.currentChannel);
+    }
+  }
+
+  syncJsonCodeFromModel() {
+    if (!this.currentChannel || !this.jsonTextarea) return;
+    const cleanObject = {
+      station_conf: this.currentChannel.station_conf
+    };
+    this.jsonTextarea.value = JSON.stringify(cleanObject, null, 2);
+    this.validateSchema(cleanObject);
+  }
+
+  parseAndApplyJsonCode() {
+    if (!this.jsonTextarea) return;
+    try {
+      const parsed = JSON.parse(this.jsonTextarea.value);
+      this.validateSchema(parsed);
+      if (parsed.station_conf) {
+        this.currentChannel.station_conf = parsed.station_conf;
+        this.loadChannel(this.currentChannel);
+        if (this.onChannelUpdatedCallback) {
+          this.onChannelUpdatedCallback(this.currentChannel);
+        }
+      }
+    } catch (err) {
+      this.showInvalidSchemaStatus(`JSON Syntax Error: ${err.message}`);
+    }
+  }
+
+  validateSchema(obj) {
+    if (!this.validationStatus) return;
+    if (!obj || typeof obj !== 'object' || !obj.station_conf) {
+      this.showInvalidSchemaStatus("Missing required top-level 'station_conf' object.");
+      return;
+    }
+
+    const conf = obj.station_conf;
+    if (!conf.network_name) {
+      this.showInvalidSchemaStatus("Warning: 'network_name' property is required.");
+      return;
+    }
+    if (conf.channel_number === undefined) {
+      this.showInvalidSchemaStatus("Warning: 'channel_number' property is required.");
+      return;
+    }
+
+    this.validationStatus.className = 'validation-status valid';
+    this.validationStatus.innerHTML = `<i class="ri-checkbox-circle-fill"></i> Valid FieldStation42 station_conf JSON structure.`;
+  }
+
+  showInvalidSchemaStatus(msg) {
+    if (!this.validationStatus) return;
+    this.validationStatus.className = 'validation-status invalid';
+    this.validationStatus.innerHTML = `<i class="ri-error-warning-fill"></i> ${msg}`;
+  }
+
+  renderSlotOverrides(slots) {
+    const container = document.getElementById('slot-overrides-list');
+    if (!container) return;
+
+    container.innerHTML = '';
+    if (slots.length === 0) {
+      container.innerHTML = `
+        <div style="padding: 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-sm); text-align: center; color: var(--text-dim); font-size: 0.85rem;">
+          No slot overrides defined for this channel. Click "Add Slot Override" above to schedule specific blocks.
+        </div>
+      `;
+      return;
+    }
+
+    slots.forEach((slot, index) => {
+      const row = document.createElement('div');
+      row.className = 'slot-item';
+
+      row.innerHTML = `
+        <input type="text" class="form-input slot-name" value="${slot.name || 'Block Name'}" placeholder="Block Name">
+        <input type="time" class="form-input slot-start" value="${slot.start_time || '20:00'}">
+        <input type="text" class="form-input slot-dir" value="${slot.content_dir || ''}" placeholder="override/folder">
+        <select class="form-select slot-scramble">
+          <option value="none" ${!slot.scramble ? 'selected' : ''}>No Scramble</option>
+          <option value="color_inversion" ${slot.scramble === 'color_inversion' ? 'selected' : ''}>Color Invert</option>
+          <option value="severe_noise" ${slot.scramble === 'severe_noise' ? 'selected' : ''}>Severe Noise</option>
+        </select>
+        <button type="button" class="btn btn-icon btn-ghost text-danger btn-del-slot" title="Remove block"><i class="ri-delete-bin-line"></i></button>
+      `;
+
+      row.querySelector('.btn-del-slot').addEventListener('click', () => {
+        slots.splice(index, 1);
+        this.renderSlotOverrides(slots);
+        this.updateModelFromForm();
+      });
+
+      container.appendChild(row);
+    });
+  }
+
+  addSlotOverrideRow() {
+    if (!this.currentChannel) return;
+    if (!this.currentChannel.station_conf.slot_overrides) {
+      this.currentChannel.station_conf.slot_overrides = [];
+    }
+
+    this.currentChannel.station_conf.slot_overrides.push({
+      name: 'Primetime Block',
+      start_time: '20:00',
+      content_dir: 'catalog/primetime',
+      scramble: 'none'
+    });
+
+    this.renderSlotOverrides(this.currentChannel.station_conf.slot_overrides);
+    this.updateModelFromForm();
+  }
+
+  generate247ScheduleTemplate() {
+    if (!this.currentChannel) return;
+    const conf = this.currentChannel.station_conf || {};
+
+    conf.schedule_increment = 30;
+    conf.commercial_free = true;
+    conf.day_templates = {
+      all_day: {
+        "0": {"tags": "content"},
+        "1": {"tags": "content"},
+        "2": {"tags": "content"},
+        "3": {"tags": "content"},
+        "4": {"tags": "content"},
+        "5": {"tags": "content"},
+        "6": {"tags": "content"},
+        "7": {"tags": "content"},
+        "8": {"tags": "content"},
+        "9": {"tags": "content"},
+        "10": {"tags": "content"},
+        "11": {"tags": "content"},
+        "12": {"tags": "content"},
+        "13": {"tags": "content"},
+        "14": {"tags": "content"},
+        "15": {"tags": "content"},
+        "16": {"tags": "content"},
+        "17": {"tags": "content"},
+        "18": {"tags": "content"},
+        "19": {"tags": "content"},
+        "20": {"tags": "content"},
+        "21": {"tags": "content"},
+        "22": {"tags": "content"},
+        "23": {"tags": "content"}
+      }
+    };
+
+    conf.monday = "all_day";
+    conf.tuesday = "all_day";
+    conf.wednesday = "all_day";
+    conf.thursday = "all_day";
+    conf.friday = "all_day";
+    conf.saturday = "all_day";
+    conf.sunday = "all_day";
+
+    this.currentChannel.station_conf = conf;
+    this.syncJsonCodeFromModel();
+    this.showToast('Generated 24/7 liquid schedule template!', 'success');
+  }
+
+  async rebuildCurrentChannelCatalog() {
+    if (!this.currentChannel || !this.currentChannel.station_conf) return;
+    const netName = this.currentChannel.station_conf.network_name;
+    this.showToast(`Rebuilding catalog & schedule for '${netName}'...`, 'info');
+    try {
+      const res = await fetch('/api/rebuild_schedules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ station: netName })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        this.showToast(data.message || `Rebuilt catalog for '${netName}'`, 'success');
+        this.loadUpcomingSchedule();
+      } else {
+        this.showToast(`Failed to rebuild catalog for '${netName}'`, 'error');
+      }
+    } catch (err) {
+      this.showToast('Error connecting to backend server', 'error');
+    }
+  }
+
+  async loadUpcomingSchedule() {
+    const container = document.getElementById('epg-schedule-list');
+    if (!container) return;
+
+    if (!this.currentChannel || !this.currentChannel.station_conf) {
+      container.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--text-dim);">No channel selected.</div>`;
+      return;
+    }
+
+    const netName = this.currentChannel.station_conf.network_name;
+    container.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--primary-cyan);"><i class="ri-loader-4-line ri-spin" style="font-size: 1.5rem;"></i><p style="margin-top: 8px;">Loading schedule for ${netName}...</p></div>`;
+
+    try {
+      const res = await fetch(`/api/schedule?station=${encodeURIComponent(netName)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const stations = await res.json();
+
+      let items = [];
+      if (Array.isArray(stations) && stations.length > 0) {
+        items = stations[0].items || [];
+      }
+
+      if (items.length === 0) {
+        container.innerHTML = `
+          <div style="padding: 32px; text-align: center; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+            <i class="ri-movie-line" style="font-size: 2.5rem; color: var(--text-dim); display: block; margin-bottom: 12px;"></i>
+            <h4 style="margin: 0 0 8px 0; color: var(--text-bright);">No Schedule Compiled Yet for ${netName}</h4>
+            <p style="margin: 0 0 16px 0; color: var(--text-dim); font-size: 0.9rem;">
+              Click "Update Catalog & Rescan Media" below to scan media files and compile a 1-week liquid schedule.
+            </p>
+            <button type="button" class="btn btn-primary glow-cyan" id="btn-epg-trigger-rebuild">
+              <i class="ri-refresh-line"></i> Rescan Media & Rebuild Catalog
+            </button>
+          </div>
+        `;
+        const btnTrigger = document.getElementById('btn-epg-trigger-rebuild');
+        if (btnTrigger) {
+          btnTrigger.addEventListener('click', () => this.rebuildCurrentChannelCatalog());
+        }
+        return;
+      }
+
+      container.innerHTML = items.map((item) => {
+        const nowClass = item.is_now_playing ? 'now-playing-card' : '';
+        const badge = item.is_now_playing
+          ? `<span class="epg-badge now"><i class="ri-broadcast-fill"></i> NOW PLAYING</span>`
+          : `<span class="epg-badge time">${item.start_fmt} - ${item.end_fmt}</span>`;
+
+        return `
+          <div class="epg-item-card ${nowClass}">
+            <div class="epg-time-column">
+              ${badge}
+              <span class="epg-duration">${item.duration_mins} mins</span>
+            </div>
+            <div class="epg-info-column">
+              <h4 class="epg-item-title">${item.title}</h4>
+              <span class="epg-file-path" title="${item.file}"><i class="ri-file-video-line"></i> ${item.file}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    } catch (err) {
+      container.innerHTML = `
+        <div style="padding: 24px; text-align: center; color: var(--accent-red);">
+          <i class="ri-error-warning-line" style="font-size: 1.5rem;"></i>
+          <p style="margin-top: 8px;">Failed to fetch schedule: ${err.message}</p>
+        </div>
+      `;
+    }
+  }
+
+  async loadPpvCatalog() {
+    const container = document.getElementById('ppv-movies-grid');
+    if (!container) return;
+
+    const conf = this.currentChannel?.station_conf || {};
+    const contentDir = conf.content_dir || 'catalog/ppv';
+
+    container.innerHTML = `
+      <div style="grid-column: 1 / -1; padding: 24px; text-align: center; color: var(--primary-cyan);">
+        <i class="ri-loader-4-line ri-spin" style="font-size: 1.5rem;"></i>
+        <p style="margin-top: 8px;">Scanning PPV movie catalog in '${contentDir}'...</p>
+      </div>
+    `;
+
+    try {
+      const res = await fetch(`/api/ppv/items?content_dir=${encodeURIComponent(contentDir)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const items = data.items || [];
+
+      if (items.length === 0) {
+        container.innerHTML = `
+          <div style="grid-column: 1 / -1; padding: 32px; text-align: center; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+            <i class="ri-film-line" style="font-size: 2.5rem; color: var(--text-dim); display: block; margin-bottom: 12px;"></i>
+            <h4 style="margin: 0 0 8px 0; color: var(--text-bright);">No PPV Movies Found in '${contentDir}'</h4>
+            <p style="margin: 0 0 16px 0; color: var(--text-dim); font-size: 0.9rem;">
+              Click below to import video files into <code>catalog/ppv</code>.
+            </p>
+            <button type="button" class="btn btn-primary glow-cyan" id="btn-ppv-empty-import">
+              <i class="ri-folder-add-line"></i> Import Movies to PPV Catalog
+            </button>
+          </div>
+        `;
+        const btnEmptyImp = document.getElementById('btn-ppv-empty-import');
+        if (btnEmptyImp) {
+          btnEmptyImp.addEventListener('click', () => {
+            const modal = document.getElementById('modal-media-importer');
+            if (modal) {
+              const folderInput = document.getElementById('import-target-folder');
+              if (folderInput) folderInput.value = 'ppv';
+              modal.classList.remove('hidden');
+            }
+          });
+        }
+        return;
+      }
+
+      container.innerHTML = items.map((item) => {
+        const posterHtml = item.poster_url
+          ? `<img src="${item.poster_url}" class="ppv-poster-img" alt="${item.title}">`
+          : `<div class="ppv-poster-fallback"><i class="ri-clapperboard-line"></i></div>`;
+
+        const infoTag = item.info ? `<span class="ppv-badge">${item.info}</span>` : '';
+        const descText = item.description ? item.description : 'On-Demand Pay-Per-View Cinema Feature.';
+
+        return `
+          <div class="ppv-movie-card">
+            <div class="ppv-poster-box">
+              ${posterHtml}
+              <div class="ppv-card-overlay">
+                <button type="button" class="btn btn-primary glow-cyan btn-sm btn-play-ppv" data-filepath="${item.file_path}">
+                  <i class="ri-play-fill"></i> Play On-Demand
+                </button>
+              </div>
+            </div>
+            <div class="ppv-movie-info">
+              <div class="ppv-title-row">
+                <h4 class="ppv-movie-title">${item.title}</h4>
+                ${infoTag}
+              </div>
+              <p class="ppv-movie-desc">${descText}</p>
+              <div class="ppv-card-footer">
+                <span class="ppv-file-path" title="${item.rel_path}"><i class="ri-file-video-line"></i> ${item.rel_path}</span>
+                <button type="button" class="btn btn-ghost btn-sm btn-play-ppv text-cyan" data-filepath="${item.file_path}">
+                  <i class="ri-play-line"></i> Play Now
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      container.querySelectorAll('.btn-play-ppv').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const filePath = btn.dataset.filepath;
+          if (filePath) this.playPpvMovie(filePath);
+        });
+      });
+
+    } catch (err) {
+      container.innerHTML = `
+        <div style="grid-column: 1 / -1; padding: 24px; text-align: center; color: var(--accent-red);">
+          <i class="ri-error-warning-line" style="font-size: 1.5rem;"></i>
+          <p style="margin-top: 8px;">Failed to load PPV catalog: ${err.message}</p>
+        </div>
+      `;
+    }
+  }
+
+  async playPpvMovie(filePath) {
+    const filename = filePath.split('/').pop();
+    this.showToast(`Starting PPV on-demand playback for '${filename}'...`, 'info');
+    try {
+      const res = await fetch('/api/ppv/play', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file_path: filePath })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        this.showToast(data.message || `Playing '${filename}' on FieldStation42 output!`, 'success');
+      } else {
+        this.showToast(`Failed to play PPV movie '${filename}'`, 'error');
+      }
+    } catch (err) {
+      this.showToast('Error connecting to backend server', 'error');
+    }
+  }
+
+  async generatePpvMetadata() {
+    const conf = this.currentChannel?.station_conf || {};
+    const contentDir = conf.content_dir || 'catalog/ppv';
+
+    this.showToast(`Auto-generating metadata & posters for '${contentDir}'...`, 'info');
+    try {
+      const res = await fetch('/api/ppv/generate_metadata', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content_dir: contentDir })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        this.showToast(data.message || 'Metadata & posters generated successfully!', 'success');
+        this.loadPpvCatalog();
+      } else {
+        this.showToast('Failed to generate PPV metadata', 'error');
+      }
+    } catch (err) {
+      this.showToast(`Metadata generation error: ${err.message}`, 'error');
+    }
+  }
+
+  showToast(msg, type = 'info') {
+    const toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) return;
+
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `<i class="ri-information-fill"></i> <span>${msg}</span>`;
+
+    toastContainer.appendChild(toast);
+    setTimeout(() => toast.remove(), 3500);
+  }
+}

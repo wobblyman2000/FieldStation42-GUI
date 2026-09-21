@@ -1,0 +1,89 @@
+export class CrtPreview {
+  constructor() {
+    this.screenEl = document.getElementById('crt-sim-screen');
+    this.osdCh = document.getElementById('crt-osd-ch');
+    this.osdName = document.getElementById('crt-osd-name');
+    this.osdTime = document.getElementById('crt-osd-time');
+    this.simTitle = document.getElementById('sim-title');
+    this.simSub = document.getElementById('sim-sub');
+    this.simTypePill = document.getElementById('sim-type-pill');
+    this.scrambleLayer = document.getElementById('sim-scramble-layer');
+    this.btnTestScramble = document.getElementById('btn-test-scramble');
+
+    this.isScrambledActive = false;
+
+    this.startClock();
+    this.initControls();
+  }
+
+  startClock() {
+    const updateTime = () => {
+      const now = new Date();
+      let hours = now.getHours();
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12;
+      if (this.osdTime) {
+        this.osdTime.textContent = `${hours}:${minutes} ${ampm}`;
+      }
+    };
+    updateTime();
+    setInterval(updateTime, 10000);
+  }
+
+  initControls() {
+    if (this.btnTestScramble) {
+      this.btnTestScramble.addEventListener('click', () => {
+        this.isScrambledActive = !this.isScrambledActive;
+        this.scrambleLayer.classList.toggle('hidden', !this.isScrambledActive);
+        this.btnTestScramble.textContent = this.isScrambledActive ? 'CLEAR FX' : 'TEST FX';
+      });
+    }
+
+    const knob = document.getElementById('knob-tuner');
+    if (knob) {
+      knob.addEventListener('click', () => {
+        knob.style.transform = `rotate(${(parseInt(knob.dataset.rot || 0) + 45) % 360}deg)`;
+        knob.dataset.rot = (parseInt(knob.dataset.rot || 0) + 45) % 360;
+      });
+    }
+  }
+
+  updatePreview(channel) {
+    if (!channel) return;
+    const conf = channel.station_conf || {};
+
+    const chNum = conf.channel_number !== undefined ? String(conf.channel_number).padStart(2, '0') : '00';
+    const name = conf.network_name || 'NO SIGNAL';
+    const type = conf.network_type || 'standard';
+
+    if (this.osdCh) this.osdCh.textContent = `CH ${chNum}`;
+    if (this.osdName) this.osdName.textContent = name.toUpperCase();
+    if (this.simTitle) this.simTitle.textContent = name;
+    if (this.simSub) {
+      let desc = `Mode: ${type.toUpperCase()}`;
+      if (type === 'standard') desc += conf.content_dir ? ` | ${conf.content_dir}` : ' | Scheduled TV';
+      else if (type === 'loop') desc += ` | Loop Dir: ${conf.content_dir || 'Default'}`;
+      else if (type === 'streaming') desc += ` | Feed: ${conf.stream_url || 'HLS URL'}`;
+      else if (type === 'web') desc += ` | Web: ${conf.web_url || 'HTTP'}`;
+      else if (type === 'executable') desc += ` | Exec: ${conf.exec_command || 'Command'}`;
+      this.simSub.textContent = desc;
+    }
+
+    if (this.simTypePill) {
+      this.simTypePill.textContent = type.toUpperCase();
+      this.simTypePill.className = `status-pill tag-${type.toLowerCase()}`;
+    }
+
+    // Auto trigger scramble layer preview if video_scramble_fx is set
+    const hasScramble = conf.video_scramble_fx && conf.video_scramble_fx !== 'none';
+    this.isScrambledActive = hasScramble;
+    if (this.scrambleLayer) {
+      this.scrambleLayer.classList.toggle('hidden', !hasScramble);
+    }
+    if (this.btnTestScramble) {
+      this.btnTestScramble.textContent = hasScramble ? 'CLEAR FX' : 'TEST FX';
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "name": "fieldstation42-gui",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 4240",
+    "build": "vite build",
+    "preview": "vite preview --port 4240",
+    "server": "python3 server.py"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}

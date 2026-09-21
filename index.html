@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Field Station 42 - Channel Manager Studio</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
+  <!-- Remix Icons for crisp UI icons -->
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+  <link rel="stylesheet" href="/src/styles/main.css" />
+</head>
+<body class="crt-enabled">
+  <div id="app">
+    <!-- Top Navigation / Header -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="brand-logo">
+          <i class="ri-tv-fill logo-icon"></i>
+          <span class="logo-text">FIELD STATION <span class="accent-badge">42</span></span>
+        </div>
+        <span class="brand-sub">STUDIO CONFIGURATOR</span>
+      </div>
+
+      <div class="header-status">
+        <div class="status-indicator online">
+          <span class="dot"></span>
+          <span class="status-text" id="backend-status">FS42 CONNECTED</span>
+        </div>
+        <div class="path-badge" id="working-dir-badge" title="Active confs directory">
+          <i class="ri-folder-open-line"></i>
+          <span id="confs-path">/home/dave/FieldStation42/confs</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button id="btn-rebuild-schedules" class="btn btn-secondary glow-green" title="Compile broadcast schedules & rebuild media catalogs for all channels">
+          <i class="ri-calendar-event-line"></i> Compile Schedules
+        </button>
+        <button id="btn-open-media-importer" class="btn btn-secondary glow-cyan" title="Import media files & create symlinks in Field Station 42 catalog">
+          <i class="ri-links-line"></i> Import & Symlink Media
+        </button>
+        <button id="btn-recipe-wizard" class="btn btn-secondary glow-purple" title="Create channel from preset blueprint">
+          <i class="ri-magic-line"></i> Recipe Recipes
+        </button>
+        <button id="btn-new-channel" class="btn btn-primary glow-cyan">
+          <i class="ri-add-line"></i> New Channel
+        </button>
+        <button id="btn-export-bundle" class="btn btn-ghost" title="Export all confs as ZIP / JSON bundle">
+          <i class="ri-download-2-line"></i> Export All
+        </button>
+        <label class="top-flirc-toggle" title="Enable FLIRC / USB Remote listener (Channel up/down, Volume, Keypad)">
+          <input type="checkbox" id="chk-header-flirc" checked>
+          <span><i class="ri-usb-line"></i> FLIRC Remote</span>
+        </label>
+        <label class="top-flirc-toggle" title="Enable FieldStation42 On-Screen Display Overlay (Channel numbers, logos, status popups)">
+          <input type="checkbox" id="chk-header-osd" checked>
+          <span><i class="ri-tv-line"></i> TV OSD</span>
+        </label>
+        <button id="btn-test-osd" class="btn btn-sm btn-ghost" title="Test On-Screen Display Overlay popup on playback output">
+          <i class="ri-sparkles-line"></i> Test OSD
+        </button>
+        <button id="btn-toggle-crt" class="btn btn-icon btn-ghost" title="Toggle CRT Scanline Effect">
+          <i class="ri-tv-2-line"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Workspace Container -->
+    <main class="app-body">
+      <!-- Left Sidebar: Channel List & Explorer -->
+      <aside class="sidebar-panel">
+        <div class="sidebar-header">
+          <div class="search-box">
+            <i class="ri-search-line search-icon"></i>
+            <input type="text" id="channel-search-input" placeholder="Search channels..." />
+            <button id="clear-search-btn" class="btn-clear hidden"><i class="ri-close-line"></i></button>
+          </div>
+          <div class="type-filter-chips" id="filter-chips">
+            <button class="chip active" data-filter="all">All (<span id="count-all">0</span>)</button>
+            <button class="chip" data-filter="standard">Std</button>
+            <button class="chip" data-filter="loop">Loop</button>
+            <button class="chip" data-filter="ppv">PPV</button>
+            <button class="chip" data-filter="guide">Guide</button>
+            <button class="chip" data-filter="streaming">Stream</button>
+            <button class="chip" data-filter="web">Web</button>
+            <button class="chip" data-filter="executable">Exec</button>
+          </div>
+        </div>
+
+        <div class="sidebar-channel-list" id="channel-list-container">
+          <!-- Dynamically populated channel items -->
+        </div>
+
+        <div class="sidebar-footer">
+          <div class="stats-summary">
+            <span id="total-channels-badge">0 Channels Configured</span>
+          </div>
+          <button id="btn-sync-confs" class="btn btn-sm btn-ghost" title="Reload from confs folder">
+            <i class="ri-refresh-line"></i> Sync Confs
+          </button>
+        </div>
+      </aside>
+
+      <!-- Center Main Panel: Channel Visual Editor -->
+      <section class="editor-panel" id="editor-workspace">
+        <div class="editor-header">
+          <div class="channel-title-row">
+            <div class="channel-number-display" id="edit-ch-num-badge">CH --</div>
+            <div class="channel-title-info">
+              <h2 id="edit-network-name">Select or Create a Channel</h2>
+              <span class="type-tag" id="edit-type-tag">STANDARD</span>
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="margin-left: auto; display: flex; gap: 8px;">
+              <button type="button" class="btn btn-secondary glow-purple btn-sm" id="btn-rebuild-station-catalog" title="Rescan media files and rebuild catalog/schedule for this channel">
+                <i class="ri-refresh-line"></i> Rebuild Station Catalog
+              </button>
+              <button type="button" class="btn btn-primary glow-cyan btn-sm" id="btn-tune-live-channel">
+                <i class="ri-broadcast-line"></i> Tune TV To This Channel
+              </button>
+            </div>
+          </div>
+
+          <div class="editor-tabs">
+            <button class="tab-btn active" data-tab="tab-general">
+              <i class="ri-settings-4-line"></i> General
+            </button>
+            <button class="tab-btn" data-tab="tab-content">
+              <i class="ri-folder-video-line"></i> Content & Sources
+            </button>
+            <button class="tab-btn" data-tab="tab-playback">
+              <i class="ri-equalizer-line"></i> Playback & FX
+            </button>
+            <button class="tab-btn" data-tab="tab-schedule">
+              <i class="ri-calendar-event-line"></i> Schedule & Slots
+            </button>
+            <button class="tab-btn" data-tab="tab-epg">
+              <i class="ri-movie-2-line"></i> Upcoming Movies & Schedule
+            </button>
+            <button class="tab-btn" data-tab="tab-ppv">
+              <i class="ri-ticket-2-line"></i> PPV Movies & On-Demand
+            </button>
+            <button class="tab-btn" data-tab="tab-code">
+              <i class="ri-code-s-slash-line"></i> JSON Inspector
+            </button>
+          </div>
+        </div>
+
+        <div class="editor-content-area">
+          <!-- TAB 1: General Settings -->
+          <div class="tab-pane active" id="tab-general">
+            <form id="form-general" class="form-grid">
+              <div class="form-group col-6">
+                <label for="input-network-name">Network Display Name <span class="required">*</span></label>
+                <input type="text" id="input-network-name" class="form-input" placeholder="e.g. Retro Animation Network" required />
+                <span class="field-hint">The title displayed on screen and in program guides.</span>
+              </div>
+
+              <div class="form-group col-3">
+                <label for="input-channel-number">Channel Number <span class="required">*</span></label>
+                <input type="number" id="input-channel-number" class="form-input" min="1" max="999" placeholder="e.g. 5" required />
+                <span class="field-hint">Tuning position (1-999).</span>
+              </div>
+
+              <div class="form-group col-3">
+                <label for="input-network-type">Network Type <span class="required">*</span></label>
+                <select id="input-network-type" class="form-select">
+                  <option value="standard">Standard (Scheduled TV)</option>
+                  <option value="loop">Loop (Continuous Directory)</option>
+                  <option value="guide">Guide (Interactive TV Guide)</option>
+                  <option value="web">Web (Webpage Stream)</option>
+                  <option value="ppv">Pay-Per-View (On Demand PPV)</option>
+                  <option value="streaming">Streaming (IPTV / HLS Feed)</option>
+                  <option value="executable">Executable (Retro Emulator/App)</option>
+                </select>
+                <span class="field-hint">Determines station behavior.</span>
+              </div>
+
+              <div class="form-group col-6">
+                <label for="input-call-sign">Call Sign / Short Code</label>
+                <input type="text" id="input-call-sign" class="form-input" placeholder="e.g. WRET-TV" />
+                <span class="field-hint">Optional station identity prefix.</span>
+              </div>
+
+              <div class="form-group col-6">
+                <label for="input-station-desc">Station Description</label>
+                <input type="text" id="input-station-desc" class="form-input" placeholder="e.g. Classic 80s cartoons 24/7" />
+                <span class="field-hint">Internal note / guide summary.</span>
+              </div>
+
+              <div class="form-group col-12 card-box">
+                <h4 class="box-title"><i class="ri-shield-user-line"></i> Parental Control & Access</h4>
+                <div class="toggle-row">
+                  <div class="toggle-label">
+                    <strong>Parental Control Lock</strong>
+                    <p>Requires `parental_controls_pin` set in main_config.json to tune.</p>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" id="input-parental-controls">
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <!-- TAB 2: Content & Sources -->
+          <div class="tab-pane" id="tab-content">
+            <form id="form-content" class="form-grid">
+              <!-- Content Dir Section (Standard / Loop) -->
+              <div class="form-group col-12 content-type-sec sec-standard sec-loop">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                  <label for="input-content-dir">Content Directory (`content_dir`)</label>
+                  <button type="button" class="btn btn-sm btn-ghost" id="btn-quick-import-media" style="color: var(--primary-cyan);">
+                    <i class="ri-folder-zip-line"></i> Import & Symlink Media into Catalog
+                  </button>
+                </div>
+                <div class="input-with-action">
+                  <input type="text" id="input-content-dir" class="form-input" placeholder="catalog/cartoons/ or /media/tv/cartoons" />
+                  <button type="button" class="btn btn-secondary btn-browse-dir-target" data-target="input-content-dir">
+                    <i class="ri-folder-open-line"></i> Browse Folder
+                  </button>
+                </div>
+                <span class="field-hint">Path to folder containing video files for this channel.</span>
+              </div>
+
+              <!-- Streaming URL Section -->
+              <div class="form-group col-12 content-type-sec sec-streaming hidden">
+                <label for="input-stream-url">Stream URL (`stream_url`)</label>
+                <input type="url" id="input-stream-url" class="form-input" placeholder="https://example.com/live/stream.m3u8" />
+                <span class="field-hint">Direct HLS (.m3u8) or IPTV stream source.</span>
+              </div>
+
+              <!-- Web URL Section -->
+              <div class="form-group col-12 content-type-sec sec-web hidden">
+                <label for="input-web-url">Web Page URL (`web_url`)</label>
+                <input type="url" id="input-web-url" class="form-input" placeholder="http://localhost:8080/dashboard" />
+                <span class="field-hint">Web page to display full-screen as a channel.</span>
+              </div>
+
+              <!-- Executable Section -->
+              <div class="form-group col-12 content-type-sec sec-executable hidden">
+                <label for="input-exec-cmd">Executable Command (`exec_command`)</label>
+                <input type="text" id="input-exec-cmd" class="form-input" placeholder="retroarch -L /cores/nes_libretro.so game.nes" />
+                <span class="field-hint">Command to launch when tuned into this channel.</span>
+              </div>
+
+              <!-- Bumps & Commercials Path -->
+              <div class="form-group col-6">
+                <label for="input-commercial-dir">Commercials Folder (`commercials_dir`)</label>
+                <div class="input-with-action">
+                  <input type="text" id="input-commercial-dir" class="form-input" placeholder="runtime/commercials/80s" />
+                  <button type="button" class="btn btn-secondary btn-browse-dir-target" data-target="input-commercial-dir">
+                    <i class="ri-folder-open-line"></i>
+                  </button>
+                </div>
+                <span class="field-hint">Directory with video commercials & interstitials.</span>
+              </div>
+
+              <div class="form-group col-6">
+                <label for="input-station-bumps">Station Bumps Folder (`bumps_dir`)</label>
+                <div class="input-with-action">
+                  <input type="text" id="input-station-bumps" class="form-input" placeholder="runtime/bumps/station_ids" />
+                  <button type="button" class="btn btn-secondary btn-browse-dir-target" data-target="input-station-bumps">
+                    <i class="ri-folder-open-line"></i>
+                  </button>
+                </div>
+                <span class="field-hint">Station identification clips played between blocks.</span>
+              </div>
+
+              <!-- Guide Sound Directory -->
+              <div class="form-group col-12 content-type-sec sec-guide hidden">
+                <div class="card-box">
+                  <h4 class="box-title"><i class="ri-volume-up-line"></i> Guide Background Audio</h4>
+                  <div class="form-grid">
+                    <div class="form-group col-6">
+                      <div class="toggle-row">
+                        <div class="toggle-label">
+                          <strong>Play Background Sound</strong>
+                          <p>Play music during guide scrolling.</p>
+                        </div>
+                        <label class="switch">
+                          <input type="checkbox" id="input-play-sound" checked>
+                          <span class="slider round"></span>
+                        </label>
+                      </div>
+                    </div>
+                    <div class="form-group col-6">
+                      <label for="input-sound-path">Music Folder (`sound_to_play`)</label>
+                      <div class="input-with-action">
+                        <input type="text" id="input-sound-path" class="form-input" placeholder="runtime/guide_music/" />
+                        <button type="button" class="btn btn-secondary btn-browse-dir-target" data-target="input-sound-path">
+                          <i class="ri-folder-open-line"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <!-- TAB 3: Playback & Scramble FX -->
+          <div class="tab-pane" id="tab-playback">
+            <form id="form-playback" class="form-grid">
+              <div class="form-group col-6 card-box">
+                <h4 class="box-title"><i class="ri-film-line"></i> Commercial Settings</h4>
+                <div class="toggle-row">
+                  <div class="toggle-label">
+                    <strong>Commercial-Free Mode</strong>
+                    <p>Disables commercial breaks on this channel.</p>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" id="input-commercial-free">
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="form-group col-6 card-box">
+                <h4 class="box-title"><i class="ri-aspect-ratio-line"></i> Aspect Ratio & Scaling</h4>
+                <label for="input-aspect-ratio">Channel Aspect Ratio</label>
+                <select id="input-aspect-ratio" class="form-select">
+                  <option value="4:3">4:3 Retro Pillarbox (Default)</option>
+                  <option value="16:9">16:9 Widescreen</option>
+                  <option value="stretch">Stretch to Fit Screen</option>
+                </select>
+              </div>
+
+              <div class="form-group col-12 card-box">
+                <h4 class="box-title"><i class="ri-signal-tower-line"></i> Channel Scrambling Effects (Premium Cable Simulation)</h4>
+                <p class="section-desc">Simulate encrypted scrambled subscription channels with custom visual and audio distortion effects.</p>
+
+                <div class="form-grid">
+                  <div class="form-group col-6">
+                    <label for="input-video-scramble">Video Scramble Effect (`video_scramble_fx`)</label>
+                    <select id="input-video-scramble" class="form-select">
+                      <option value="none">None (Clean Video)</option>
+                      <option value="color_inversion">Color Inversion & Sync Slip</option>
+                      <option value="severe_noise">Severe Snow & Phase Noise</option>
+                      <option value="special_sauce">Special Sauce (Wobbly Lines)</option>
+                      <option value="static_fuzz">Analog Static Fuzz</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group col-6">
+                    <label for="input-audio-scramble">Audio Scramble Effect (`audio_scramble_fx`)</label>
+                    <select id="input-audio-scramble" class="form-select">
+                      <option value="none">None (Clear Audio)</option>
+                      <option value="high_pitch_heterodyne">High-Pitch Heterodyne Tone</option>
+                      <option value="muffled_lowpass">Muffled Lowpass Noise</option>
+                      <option value="inverted_audio">Inverted / Modulated Pitch</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <!-- TAB 4: Schedule & Slot Overrides -->
+          <div class="tab-pane" id="tab-schedule">
+            <div class="schedule-editor-wrapper">
+              <div class="schedule-toolbar">
+                <div class="schedule-info">
+                  <h4><i class="ri-calendar-check-line"></i> Day Templates & Slot Overrides</h4>
+                  <p>Organize programming blocks (Primetime, Morning Cartoons, Late Night) across days of the week.</p>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-generate-247-schedule">
+                    <i class="ri-flashlight-line"></i> Auto Generate 24/7 Schedule
+                  </button>
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-add-slot-override">
+                    <i class="ri-add-circle-line"></i> Add Slot Override
+                  </button>
+                </div>
+              </div>
+
+              <div class="days-selector">
+                <label>Active Days:</label>
+                <div class="day-checkboxes">
+                  <label class="day-chip"><input type="checkbox" value="monday" checked> Mon</label>
+                  <label class="day-chip"><input type="checkbox" value="tuesday" checked> Tue</label>
+                  <label class="day-chip"><input type="checkbox" value="wednesday" checked> Wed</label>
+                  <label class="day-chip"><input type="checkbox" value="thursday" checked> Thu</label>
+                  <label class="day-chip"><input type="checkbox" value="friday" checked> Fri</label>
+                  <label class="day-chip"><input type="checkbox" value="saturday" checked> Sat</label>
+                  <label class="day-chip"><input type="checkbox" value="sunday" checked> Sun</label>
+                </div>
+              </div>
+
+              <div class="slots-container" id="slot-overrides-list">
+                <!-- Dynamically added slot overrides -->
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB: Upcoming Movies & Schedule EPG -->
+          <div class="tab-pane" id="tab-epg">
+            <div class="epg-wrapper">
+              <div class="epg-header">
+                <div>
+                  <h4 style="margin: 0; display: flex; align-items: center; gap: 8px;">
+                    <i class="ri-movie-2-line text-cyan"></i> Upcoming Broadcast Schedule & Queue
+                  </h4>
+                  <p style="margin: 4px 0 0 0; color: var(--text-dim); font-size: 0.85rem;">
+                    Live movie and show episode queue compiled from FieldStation42 database.
+                  </p>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <button type="button" class="btn btn-primary glow-cyan btn-sm" id="btn-rebuild-epg-catalog" title="Rescan media files and rebuild schedule for this channel">
+                    <i class="ri-refresh-line"></i> Update Catalog & Rescan Media
+                  </button>
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-refresh-epg-schedule">
+                    <i class="ri-history-line"></i> Refresh Schedule
+                  </button>
+                </div>
+              </div>
+
+              <div class="epg-list-container" id="epg-schedule-list">
+                <!-- Dynamically populated upcoming schedule entries -->
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB: PPV Movies & On-Demand Catalog -->
+          <div class="tab-pane" id="tab-ppv">
+            <div class="epg-wrapper">
+              <div class="epg-header">
+                <div>
+                  <h4 style="margin: 0; display: flex; align-items: center; gap: 8px;">
+                    <i class="ri-ticket-2-line text-cyan"></i> Pay-Per-View Movie Library & On-Demand Player
+                  </h4>
+                  <p style="margin: 4px 0 0 0; color: var(--text-dim); font-size: 0.85rem;">
+                    Browse movies in PPV catalog and trigger instant on-demand playback on FieldStation42 output.
+                  </p>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <button type="button" class="btn btn-primary glow-cyan btn-sm" id="btn-import-ppv-movies">
+                    <i class="ri-folder-add-line"></i> Import Movies to PPV Catalog
+                  </button>
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-generate-ppv-meta" title="Auto-generate .nfo metadata and poster images for missing movie entries">
+                    <i class="ri-magic-line text-cyan"></i> Generate Artwork & NFOs
+                  </button>
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-refresh-ppv-catalog">
+                    <i class="ri-refresh-line"></i> Refresh PPV List
+                  </button>
+                </div>
+              </div>
+
+              <div class="ppv-grid-container" id="ppv-movies-grid">
+                <!-- Dynamically populated PPV movie cards -->
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 5: JSON Inspector & Code Editor -->
+          <div class="tab-pane" id="tab-code">
+            <div class="code-inspector-wrapper">
+              <div class="code-toolbar">
+                <span class="code-filename"><i class="ri-file-code-line"></i> <span id="json-filename-display">station_05.json</span></span>
+                <div class="code-actions">
+                  <button type="button" class="btn btn-ghost btn-sm" id="btn-copy-json"><i class="ri-file-copy-line"></i> Copy</button>
+                  <button type="button" class="btn btn-ghost btn-sm" id="btn-format-json"><i class="ri-code-line"></i> Format</button>
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-download-json"><i class="ri-download-line"></i> Download JSON</button>
+                </div>
+              </div>
+              <textarea id="json-code-textarea" spellcheck="false"></textarea>
+              <div id="json-validation-status" class="validation-status valid">
+                <i class="ri-checkbox-circle-fill"></i> Valid FieldStation42 station_conf JSON structure.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="editor-footer">
+          <button type="button" class="btn btn-ghost text-danger" id="btn-delete-channel">
+            <i class="ri-delete-bin-line"></i> Delete Channel
+          </button>
+          <button type="button" class="btn btn-secondary" id="btn-duplicate-channel">
+            <i class="ri-file-copy-2-line"></i> Duplicate
+          </button>
+          <button type="button" class="btn btn-primary glow-cyan" id="btn-save-channel">
+            <i class="ri-save-line"></i> Save Channel Conf
+          </button>
+        </div>
+      </section>
+
+      <!-- Right Panel: Live CRT Monitor & TV Remote Control -->
+      <aside class="crt-monitor-panel">
+        <div class="crt-monitor-frame">
+          <div class="crt-screen-bezel">
+            <div class="crt-screen" id="crt-sim-screen">
+              <div class="crt-scanlines"></div>
+              <div class="crt-glare"></div>
+
+              <!-- Live Signal Overlay -->
+              <div class="crt-channel-osd" id="crt-osd">
+                <span class="osd-ch" id="crt-osd-ch">CH 05</span>
+                <span class="osd-name" id="crt-osd-name">RETRO TV</span>
+                <span class="osd-time" id="crt-osd-time">12:00 PM</span>
+              </div>
+
+              <!-- CRT Content Simulation View -->
+              <div class="crt-inner-view" id="crt-inner-view">
+                <div class="sim-content standard-sim" id="sim-standard">
+                  <div class="tv-bar-graphic">
+                    <i class="ri-tv-line tv-big-icon"></i>
+                    <div class="sim-program-title" id="sim-title">BROADCAST SIGNAL</div>
+                    <div class="sim-program-sub" id="sim-sub">Schedule: Standard Programming</div>
+                  </div>
+                </div>
+
+                <!-- Scramble overlay effect element -->
+                <div class="scramble-overlay hidden" id="sim-scramble-layer">
+                  <div class="static-noise"></div>
+                  <div class="scramble-text">SCRAMBLED SIGNAL</div>
+                </div>
+              </div>
+
+              <div class="crt-footer-strip">
+                <span class="status-pill" id="sim-type-pill">STANDARD</span>
+                <span class="signal-indicator"><i class="ri-signal-tower-fill"></i> AIRING</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="crt-controls">
+            <div class="crt-knob-group">
+              <span class="knob-label">CH TUNER</span>
+              <div class="crt-knob" id="knob-tuner" title="Scroll channel"><div class="knob-line"></div></div>
+            </div>
+            <div class="crt-knob-group">
+              <span class="knob-label">SCRAMBLE</span>
+              <button class="btn-toggle-scramble" id="btn-test-scramble" title="Test scramble distortion">TEST FX</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TV Remote Control Widget -->
+        <div class="remote-control-widget">
+          <div class="remote-header">
+            <div class="remote-brand"><i class="ri-remote-control-line"></i> FS42 REMOTE</div>
+            <span id="remote-power-status" class="remote-status standby">STANDBY</span>
+          </div>
+
+          <!-- Prominent FLIRC Remote Listener Control -->
+          <div class="remote-flirc-row" style="background: rgba(0, 240, 255, 0.08); border: 1px solid rgba(0, 240, 255, 0.3);">
+            <label class="remote-flirc-label" title="Enable FLIRC / USB Remote listener to control channel up/down, volume, mute & numbers">
+              <input type="checkbox" id="chk-enable-flirc" checked>
+              <span><i class="ri-usb-line" style="color: var(--primary-cyan);"></i> Enable FLIRC Remote</span>
+            </label>
+            <button id="btn-flirc-info" class="icon-btn-xs" title="FLIRC Remote Setup & Key Mapping Instructions">
+              <i class="ri-question-line"></i>
+            </button>
+          </div>
+
+          <div id="flirc-status-badge" class="flirc-status-badge" style="margin-top: -4px; margin-bottom: 2px;">
+            <span class="dot online"></span> Receiver Active (Web & evdev)
+          </div>
+
+          <div class="remote-power-row">
+            <button id="remote-btn-power" class="remote-power-btn" title="Start/Stop FieldStation42 Playback">
+              <i class="ri-power-line"></i>
+              <span>START PLAYBACK</span>
+            </button>
+          </div>
+
+          <div class="remote-display-strip" id="remote-digit-display">CH --</div>
+
+          <div class="remote-rockers">
+            <div class="rocker-group">
+              <button id="remote-btn-ch-up" class="remote-btn rocker" title="Channel Up"><i class="ri-arrow-up-s-line"></i> CH ▲</button>
+              <button id="remote-btn-ch-down" class="remote-btn rocker" title="Channel Down"><i class="ri-arrow-down-s-line"></i> CH ▼</button>
+            </div>
+            <div class="rocker-group">
+              <button id="remote-btn-vol-up" class="remote-btn rocker" title="Volume Up"><i class="ri-volume-up-line"></i> VOL +</button>
+              <button id="remote-btn-vol-down" class="remote-btn rocker" title="Volume Down"><i class="ri-volume-down-line"></i> VOL -</button>
+            </div>
+          </div>
+
+          <div class="remote-keypad">
+            <button class="remote-key-num" data-num="1">1</button>
+            <button class="remote-key-num" data-num="2">2</button>
+            <button class="remote-key-num" data-num="3">3</button>
+            <button class="remote-key-num" data-num="4">4</button>
+            <button class="remote-key-num" data-num="5">5</button>
+            <button class="remote-key-num" data-num="6">6</button>
+            <button class="remote-key-num" data-num="7">7</button>
+            <button class="remote-key-num" data-num="8">8</button>
+            <button class="remote-key-num" data-num="9">9</button>
+            <button class="remote-btn btn-sm" id="remote-btn-clear">CLR</button>
+            <button class="remote-key-num" data-num="0">0</button>
+            <button class="remote-btn btn-sm btn-cyan" id="remote-btn-enter">TUNE</button>
+          </div>
+
+          <div class="remote-footer-row">
+            <button id="remote-btn-guide" class="remote-btn" style="width: 100%;">
+              <i class="ri-list-check"></i> TV GUIDE
+            </button>
+            <button id="remote-btn-mute" class="remote-btn">
+              <i class="ri-volume-mute-line"></i>
+            </button>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <!-- Modal: Interactive Directory Browser -->
+    <div class="modal-overlay hidden" id="modal-dir-browser">
+      <div class="modal-card" style="width: 640px;">
+        <div class="modal-header">
+          <h3><i class="ri-folder-open-line"></i> Select Directory Path</h3>
+          <button class="btn-icon btn-ghost close-modal-btn"><i class="ri-close-line"></i></button>
+        </div>
+        <div class="modal-body" style="padding: 16px;">
+          <div class="dir-nav-bar">
+            <button class="btn btn-secondary btn-sm" id="btn-dir-up" title="Parent Directory"><i class="ri-arrow-up-line"></i> Up</button>
+            <input type="text" id="dir-current-path-display" class="form-input" style="flex: 1; font-family: var(--font-mono); font-size: 0.85rem;" readonly>
+          </div>
+
+          <div class="dir-bookmarks-strip">
+            <button class="dir-bookmark" data-path="~"><i class="ri-home-4-line"></i> Home</button>
+            <button class="dir-bookmark" data-path="catalog"><i class="ri-film-line"></i> catalog/</button>
+            <button class="dir-bookmark" data-path="/"><i class="ri-hard-drive-2-line"></i> Root /</button>
+          </div>
+
+          <div class="dir-list-container" id="dir-folders-list">
+            <!-- Dynamically populated -->
+          </div>
+
+          <div class="dir-modal-footer">
+            <span id="dir-media-count-badge" class="media-badge">0 Media Files Found</span>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-ghost close-modal-btn">Cancel</button>
+              <button class="btn btn-primary glow-cyan" id="btn-confirm-dir-select"><i class="ri-check-line"></i> Select Folder</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Media Importer & Symlink Generator -->
+    <div class="modal-overlay hidden" id="modal-media-importer">
+      <div class="modal-card" style="width: 680px;">
+        <div class="modal-header">
+          <h3><i class="ri-links-line"></i> Media Importer & Catalog Symlink Generator</h3>
+          <button class="btn-icon btn-ghost close-modal-btn"><i class="ri-close-line"></i></button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-desc">
+            Import video files from any folder on your computer into Field Station 42's <code>catalog/</code> directory. Creating <strong>symlinks</strong> saves storage space by linking directly to your original media files.
+          </p>
+
+          <form class="form-grid" onsubmit="return false;">
+            <div class="form-group col-12">
+              <label>1. Source Media Folder (Where your video files are located)</label>
+              <div class="input-with-action">
+                <input type="text" id="import-source-path" class="form-input" placeholder="/home/dave/Videos/Cartoons" />
+                <button type="button" class="btn btn-secondary" id="btn-browse-import-source">
+                  <i class="ri-folder-open-line"></i> Browse Folder
+                </button>
+              </div>
+              <div id="import-scan-status" class="field-hint" style="margin-top: 4px; color: var(--primary-cyan);"></div>
+            </div>
+
+            <div class="form-group col-12">
+              <label>2. Target Catalog Folder Name (`catalog/&lt;name&gt;`)</label>
+              <input type="text" id="import-target-folder" class="form-input" placeholder="cartoons" />
+              <span class="field-hint">This will create folder: <code>catalog/&lt;name&gt;/</code> inside Field Station 42.</span>
+            </div>
+
+            <div class="form-group col-12 card-box">
+              <h4 class="box-title"><i class="ri-settings-3-line"></i> Import Action Mode</h4>
+              <div style="display: flex; gap: 20px;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                  <input type="radio" name="import-mode" value="symlink" checked>
+                  <div>
+                    <strong>🔗 Create Symlinks (Recommended)</strong>
+                    <p style="font-size: 0.75rem; color: var(--text-dim);">Zero storage cost. Links directly to existing videos.</p>
+                  </div>
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                  <input type="radio" name="import-mode" value="copy">
+                  <div>
+                    <strong>📋 Copy Media Files</strong>
+                    <p style="font-size: 0.75rem; color: var(--text-dim);">Duplicates video files into catalog folder.</p>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </form>
+
+          <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+            <button class="btn btn-ghost close-modal-btn">Cancel</button>
+            <button class="btn btn-primary glow-cyan" id="btn-execute-import">
+              <i class="ri-play-line"></i> Generate Catalog Media & Set Content Dir
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Recipe Blueprint Wizard -->
+    <div class="modal-overlay hidden" id="modal-recipe-wizard">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3><i class="ri-magic-line"></i> Field Station 42 Recipe Wizard</h3>
+          <button class="btn-icon btn-ghost close-modal-btn"><i class="ri-close-line"></i></button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-desc">Choose a pre-configured channel blueprint recipe to create a station instantly:</p>
+          <div class="recipe-cards-grid">
+            <div class="recipe-card" data-recipe="standard-tv">
+              <div class="recipe-icon"><i class="ri-tv-line"></i></div>
+              <h4>Classic Cable TV Station</h4>
+              <p>Standard scheduled channel with commercials, station bumps, and primetime blocks.</p>
+              <span class="recipe-tag">standard</span>
+            </div>
+
+            <div class="recipe-card" data-recipe="movie-loop">
+              <div class="recipe-icon"><i class="ri-film-line"></i></div>
+              <h4>Commercial-Free Video Loop</h4>
+              <p>Continuous video directory playback ideal for screen savers or ambient background TV.</p>
+              <span class="recipe-tag">loop</span>
+            </div>
+
+            <div class="recipe-card" data-recipe="tv-guide">
+              <div class="recipe-icon"><i class="ri-list-check-2"></i></div>
+              <h4>Scrolling TV Guide Channel</h4>
+              <p>Interactive station guide channel with scrolling schedule grid & background music.</p>
+              <span class="recipe-tag">guide</span>
+            </div>
+
+            <div class="recipe-card" data-recipe="iptv-stream">
+              <div class="recipe-icon"><i class="ri-broadcast-line"></i></div>
+              <h4>IPTV / HLS Stream</h4>
+              <p>Live external video feed from an HLS (.m3u8) or network stream URL.</p>
+              <span class="recipe-tag">streaming</span>
+            </div>
+
+            <div class="recipe-card" data-recipe="web-widget">
+              <div class="recipe-icon"><i class="ri-global-line"></i></div>
+              <h4>Retro Web Channel</h4>
+              <p>Full-screen web dashboard or website embedded directly into Field Station 42.</p>
+              <span class="recipe-tag">web</span>
+            </div>
+
+            <div class="recipe-card" data-recipe="ppv-movies">
+              <div class="recipe-icon"><i class="ri-ticket-2-line"></i></div>
+              <h4>Pay-Per-View Cinema (On-Demand)</h4>
+              <p>On-demand movie catalog with NFO metadata, poster artwork, and instant movie playback.</p>
+              <span class="recipe-tag" style="color: #f43f5e; border-color: rgba(244, 63, 94, 0.4);">ppv</span>
+            </div>
+
+            <div class="recipe-card" data-recipe="retro-arcade">
+              <div class="recipe-icon"><i class="ri-gamepad-line"></i></div>
+              <h4>Arcade & Executable Channel</h4>
+              <p>Launch an external emulator, script, or retro application when tuning into this channel.</p>
+              <span class="recipe-tag">executable</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: FLIRC Remote Setup Instructions -->
+    <div class="modal-overlay hidden" id="modal-flirc-setup">
+      <div class="modal-card" style="width: 600px;">
+        <div class="modal-header">
+          <h3><i class="ri-remote-control-line"></i> FLIRC Remote Control Setup & Mapping</h3>
+          <button class="btn-icon btn-ghost close-modal-btn" id="modal-flirc-close"><i class="ri-close-line"></i></button>
+        </div>
+        <div class="modal-body" style="display: flex; flex-direction: column; gap: 14px; padding: 20px;">
+          <p style="font-size: 0.9rem; color: var(--text-muted); margin: 0; line-height: 1.4;">
+            The <strong>FLIRC USB Receiver</strong> lets you use any standard infrared (IR) TV remote control with FieldStation42. When configured, remote keypresses control channel tuning, audio volume, muting, and direct channel entry.
+          </p>
+
+          <div style="background: rgba(0,240,255,0.06); border: 1px solid rgba(0,240,255,0.2); border-radius: 8px; padding: 14px;">
+            <h4 style="margin: 0 0 10px 0; color: var(--primary-cyan); font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
+              <i class="ri-keyboard-line"></i> Required Remote Key Mappings (FLIRC GUI)
+            </h4>
+            <table style="width: 100%; font-size: 0.85rem; border-collapse: collapse;">
+              <thead>
+                <tr style="border-bottom: 1px solid var(--border-color); text-align: left; color: var(--text-muted);">
+                  <th style="padding: 6px 8px;">TV Remote Button</th>
+                  <th style="padding: 6px 8px;">FLIRC GUI Key Target</th>
+                  <th style="padding: 6px 8px;">Action Executed</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                  <td style="padding: 6px 8px;"><strong>CH ▲ (Channel Up)</strong></td>
+                  <td style="padding: 6px 8px;"><code class="code-tag">PageUp</code> / <code class="code-tag">Up Arrow</code></td>
+                  <td style="padding: 6px 8px;">Tune next channel</td>
+                </tr>
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                  <td style="padding: 6px 8px;"><strong>CH ▼ (Channel Down)</strong></td>
+                  <td style="padding: 6px 8px;"><code class="code-tag">PageDown</code> / <code class="code-tag">Down Arrow</code></td>
+                  <td style="padding: 6px 8px;">Tune previous channel</td>
+                </tr>
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                  <td style="padding: 6px 8px;"><strong>VOL + (Volume Up)</strong></td>
+                  <td style="padding: 6px 8px;"><code class="code-tag">VolumeUp</code> / <code class="code-tag">+</code></td>
+                  <td style="padding: 6px 8px;">Increase audio volume</td>
+                </tr>
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                  <td style="padding: 6px 8px;"><strong>VOL - (Volume Down)</strong></td>
+                  <td style="padding: 6px 8px;"><code class="code-tag">VolumeDown</code> / <code class="code-tag">-</code></td>
+                  <td style="padding: 6px 8px;">Decrease audio volume</td>
+                </tr>
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                  <td style="padding: 6px 8px;"><strong>MUTE</strong></td>
+                  <td style="padding: 6px 8px;"><code class="code-tag">AudioMute</code> / <code class="code-tag">m</code></td>
+                  <td style="padding: 6px 8px;">Toggle audio mute</td>
+                </tr>
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                  <td style="padding: 6px 8px;"><strong>0 – 9 (Numeric Pad)</strong></td>
+                  <td style="padding: 6px 8px;"><code class="code-tag">0</code> – <code class="code-tag">9</code></td>
+                  <td style="padding: 6px 8px;">Direct channel number tuning</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 8px;"><strong>GUIDE / MENU</strong></td>
+                  <td style="padding: 6px 8px;"><code class="code-tag">g</code> or <code class="code-tag">G</code></td>
+                  <td style="padding: 6px 8px;">Jump to TV Guide channel</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px;">
+            <h4 style="margin: 0 0 8px 0; font-size: 0.9rem; color: #fff; display: flex; align-items: center; gap: 6px;">
+              <i class="ri-terminal-box-line"></i> Fix Linux Permission (Required for Background Listener)
+            </h4>
+            <p style="font-size: 0.83rem; color: var(--text-muted); margin: 0 0 8px 0; line-height: 1.4;">
+              By default, Linux limits reading <code>/dev/input/event*</code> to root. Choose one of the following commands in your terminal to grant read permission:
+            </p>
+
+            <strong style="font-size: 0.8rem; color: var(--primary-cyan);">⚡ Option A: Instant Fix (No logout required)</strong>
+            <pre style="background: #000; padding: 10px 14px; border-radius: 6px; font-size: 0.78rem; color: var(--primary-cyan); margin: 4px 0 10px 0; border: 1px solid var(--border-color); overflow-x: auto;">echo 'SUBSYSTEM=="input", ATTRS{idVendor}=="20a0", ATTRS{idProduct}=="0001", MODE="0666"' | sudo tee /etc/udev/rules.d/99-flirc.rules && sudo udevadm control --reload-rules && sudo udevadm trigger</pre>
+
+            <strong style="font-size: 0.8rem; color: var(--text-muted);">Option B: Add User to Input Group (Requires logout/login)</strong>
+            <pre style="background: #000; padding: 8px 12px; border-radius: 6px; font-size: 0.78rem; color: #fff; margin: 4px 0 0 0; border: 1px solid var(--border-color);">sudo usermod -aG input $USER</pre>
+          </div>
+        </div>
+        <div class="modal-footer" style="padding: 12px 20px; display: flex; justify-content: flex-end;">
+          <button class="btn btn-primary" id="modal-flirc-ok"><i class="ri-check-line"></i> Got It</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notification Toast System -->
+    <div id="toast-container" class="toast-container"></div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
