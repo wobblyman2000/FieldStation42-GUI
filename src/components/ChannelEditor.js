@@ -1003,6 +1003,13 @@ export class ChannelEditor {
     }
   }
 
+  escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>"']/g, m => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+    }[m]));
+  }
+
   showToast(msg, type = 'info') {
     const toastContainer = document.getElementById('toast-container');
     if (!toastContainer) return;
