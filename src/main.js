@@ -24,7 +24,8 @@ class App {
       (relTargetDir, createdCount, mode) => this.handleMediaImported(relTargetDir, createdCount, mode),
       (onSelectCb) => {
         this.dirBrowserModal.onSelectDirectoryCallback = onSelectCb;
-        this.dirBrowserModal.open('');
+        const currentVal = document.getElementById('import-source-path')?.value || '';
+        this.dirBrowserModal.open(currentVal);
       }
     );
 

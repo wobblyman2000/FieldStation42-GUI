@@ -989,6 +989,9 @@ input:checked + .slider:before { transform: translateX(22px); }
   z-index: 100;
 }
 .modal-overlay.hidden { display: none; }
+#modal-dir-browser {
+  z-index: 150;
+}
 
 .modal-card {
   background: var(--bg-panel);
