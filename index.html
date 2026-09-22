@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
   <!-- Remix Icons for crisp UI icons -->
   <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
-  <link rel="stylesheet" href="/src/styles/main.css" />
+  <link rel="stylesheet" href="/src/styles/main.css?v=1.0.2" />
 </head>
 <body class="crt-enabled">
   <div id="app">
@@ -158,31 +158,54 @@
               <div class="form-group col-6">
                 <label for="input-network-name">Network Display Name <span class="required">*</span></label>
                 <input type="text" id="input-network-name" class="form-input" placeholder="e.g. Retro Animation Network" required />
+                <span class="field-hint">The title displayed on screen and in program guides.</span>
               </div>
+
               <div class="form-group col-3">
-                <label for="input-channel-num">Channel # <span class="required">*</span></label>
-                <input type="number" id="input-channel-num" class="form-input" min="1" max="999" placeholder="5" required />
+                <label for="input-channel-number">Channel Number <span class="required">*</span></label>
+                <input type="number" id="input-channel-number" class="form-input" min="1" max="999" placeholder="e.g. 5" required />
+                <span class="field-hint">Tuning position (1-999).</span>
               </div>
+
               <div class="form-group col-3">
-                <label for="input-network-type">Network Type</label>
+                <label for="input-network-type">Network Type <span class="required">*</span></label>
                 <select id="input-network-type" class="form-select">
-                  <option value="standard">Standard Broadcast (Multi-Show Schedule)</option>
-                  <option value="loop">Continuous Video Loop</option>
-                  <option value="audio">Audio Station (Radio / Music)</option>
-                  <option value="ppv">Pay-Per-View Movie Channel</option>
-                  <option value="streaming">IPTV / HLS Live Stream</option>
-                  <option value="web">Interactive Web Application</option>
-                  <option value="executable">Custom Command / Retro Emulator</option>
-                  <option value="guide">On-Screen TV Guide Channel</option>
+                  <option value="standard">Standard (Scheduled TV)</option>
+                  <option value="loop">Loop (Continuous Directory)</option>
+                  <option value="audio">Audio (Retro Radio / Music Station)</option>
+                  <option value="guide">Guide (Interactive TV Guide)</option>
+                  <option value="web">Web (Webpage Stream)</option>
+                  <option value="ppv">Pay-Per-View (On Demand PPV)</option>
+                  <option value="streaming">Streaming (IPTV / HLS Feed)</option>
+                  <option value="executable">Executable (Retro Emulator/App)</option>
                 </select>
+                <span class="field-hint">Determines station behavior.</span>
               </div>
+
               <div class="form-group col-6">
-                <label for="input-call-sign">Station Call Sign</label>
-                <input type="text" id="input-call-sign" class="form-input" placeholder="e.g. WFS42-TV" />
+                <label for="input-call-sign">Call Sign / Short Code</label>
+                <input type="text" id="input-call-sign" class="form-input" placeholder="e.g. WRET-TV" />
+                <span class="field-hint">Optional station identity prefix.</span>
               </div>
+
               <div class="form-group col-6">
-                <label for="input-description">Station Description</label>
-                <input type="text" id="input-description" class="form-input" placeholder="24/7 Retro Cartoons and Classic Movies" />
+                <label for="input-station-desc">Station Description</label>
+                <input type="text" id="input-station-desc" class="form-input" placeholder="e.g. Classic 80s cartoons 24/7" />
+                <span class="field-hint">Internal note / guide summary.</span>
+              </div>
+
+              <div class="form-group col-12 card-box">
+                <h4 class="box-title"><i class="ri-shield-user-line"></i> Parental Control & Access</h4>
+                <div class="toggle-row">
+                  <div class="toggle-label">
+                    <strong>Parental Control Lock</strong>
+                    <p>Requires `parental_controls_pin` set in main_config.json to tune.</p>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" id="input-parental-controls">
+                    <span class="slider round"></span>
+                  </label>
+                </div>
               </div>
             </form>
           </div>
@@ -934,6 +957,6 @@
     <div id="toast-container" class="toast-container"></div>
   </div>
 
-  <script type="module" src="/src/main.js"></script>
+  <script type="module" src="/src/main.js?v=1.0.2"></script>
 </body>
 </html>
