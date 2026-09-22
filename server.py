@@ -171,9 +171,14 @@ def get_flirc_device_info():
 
 class FieldStationServerHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
-        dist_dir = os.path.join(GUI_DIR, "dist")
-        directory = dist_dir if os.path.exists(dist_dir) else GUI_DIR
+        directory = GUI_DIR
         super().__init__(*args, directory=directory, **kwargs)
+
+    def end_headers(self):
+        self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+        self.send_header("Pragma", "no-cache")
+        self.send_header("Expires", "0")
+        super().end_headers()
 
     def do_GET(self):
         url_path = self.path.split('?')[0]
@@ -428,20 +433,11 @@ class FieldStationServerHandler(http.server.SimpleHTTPRequestHandler):
             return
 
         try:
-            station_script = os.path.join(FS42_HOME, "station_42.py")
-            if os.path.exists(station_script):
-                print(f"🔄 Rebuilding FieldStation42 catalogs & schedule before playback launch...")
-                subprocess.run(
-                    [VENV_PYTHON, station_script, "-r", "-d"],
-                    cwd=FS42_HOME,
-                    capture_output=True,
-                    timeout=30
-                )
-
             player_script = os.path.join(FS42_HOME, "field_player.py")
             if not os.path.exists(player_script):
-                player_script = station_script
+                player_script = os.path.join(FS42_HOME, "station_42.py")
 
+            print(f"🚀 Launching FieldStation42 playback engine: {player_script}")
             player_process = subprocess.Popen(
                 [VENV_PYTHON, player_script],
                 cwd=FS42_HOME,
