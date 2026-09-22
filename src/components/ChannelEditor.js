@@ -138,6 +138,8 @@ export class ChannelEditor {
     if (btnGenSchedule) {
       btnGenSchedule.addEventListener('click', () => this.generate247ScheduleTemplate());
     }
+
+    this.initSmartScheduleEvents();
   }
 
   updateVisibilityForNetworkType(type) {
@@ -290,6 +292,7 @@ export class ChannelEditor {
     }
 
     this.isUpdatingFromCode = false;
+    this.scanShowFolders();
   }
 
   updateModelFromForm() {
@@ -732,6 +735,263 @@ export class ChannelEditor {
       }
     } catch (err) {
       this.showToast(`Metadata generation error: ${err.message}`, 'error');
+    }
+  }
+
+  initSmartScheduleEvents() {
+    const btnScan = document.getElementById('btn-scan-show-folders');
+    if (btnScan) {
+      btnScan.addEventListener('click', () => this.scanShowFolders());
+    }
+
+    const btnCreateSub = document.getElementById('btn-create-show-subfolder');
+    if (btnCreateSub) {
+      btnCreateSub.addEventListener('click', () => this.createShowSubfolder());
+    }
+
+    const selectMode = document.getElementById('select-schedule-mode');
+    const groupTod = document.getElementById('group-timeofday-config');
+    if (selectMode && groupTod) {
+      selectMode.addEventListener('change', () => {
+        if (selectMode.value === 'timeofday') {
+          groupTod.classList.remove('hidden');
+        } else {
+          groupTod.classList.add('hidden');
+        }
+      });
+    }
+
+    const btnApply = document.getElementById('btn-apply-smart-schedule');
+    if (btnApply) {
+      btnApply.addEventListener('click', () => this.applySmartSchedule());
+    }
+  }
+
+  async scanShowFolders() {
+    const container = document.getElementById('detected-shows-container');
+    const conf = this.currentChannel?.station_conf || {};
+    const contentDir = conf.content_dir || '';
+
+    if (!container) return;
+
+    if (!contentDir) {
+      container.innerHTML = `<span style="color: var(--accent-rose); font-size: 0.85rem;"><i class="ri-error-warning-line"></i> Please specify a <code>content_dir</code> in Content & Sources tab first.</span>`;
+      return;
+    }
+
+    container.innerHTML = `<span style="font-size: 0.85rem; color: var(--text-dim);"><i class="ri-loader-4-line spin"></i> Scanning '${contentDir}' for show subfolders...</span>`;
+
+    try {
+      const res = await fetch('/api/browse_dir', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: contentDir })
+      });
+
+      if (!res.ok) throw new Error('Failed to scan channel directory');
+      const data = await res.json();
+
+      const subdirs = data.subdirs || [];
+      const rootMediaCount = data.media_count || 0;
+
+      this.detectedShows = [];
+
+      for (const sub of subdirs) {
+        try {
+          const subRes = await fetch('/api/browse_dir', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: sub.path })
+          });
+          if (subRes.ok) {
+            const subData = await subRes.json();
+            this.detectedShows.push({
+              name: sub.name,
+              path: sub.path,
+              mediaCount: subData.media_count || 0
+            });
+          }
+        } catch (e) {
+          this.detectedShows.push({ name: sub.name, path: sub.path, mediaCount: 0 });
+        }
+      }
+
+      this.renderDetectedShowChips(rootMediaCount);
+      this.populateTimeOfDayDropdowns();
+    } catch (err) {
+      container.innerHTML = `<span style="color: var(--accent-rose); font-size: 0.85rem;"><i class="ri-error-warning-line"></i> Error scanning folder: ${err.message}</span>`;
+    }
+  }
+
+  renderDetectedShowChips(rootMediaCount = 0) {
+    const container = document.getElementById('detected-shows-container');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    if (!this.detectedShows || this.detectedShows.length === 0) {
+      container.innerHTML = `
+        <div style="width: 100%; padding: 10px 14px; background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.3); border-radius: 6px; font-size: 0.82rem; color: var(--accent-amber);">
+          <i class="ri-alert-line"></i> <strong>No show subfolders found in <code>${this.escapeHtml(this.currentChannel?.station_conf?.content_dir || 'catalog/')}</code></strong>.
+          ${rootMediaCount > 0 ? `<br>Found <strong>${rootMediaCount}</strong> loose video files in root folder. Standard channels require subfolders for each program (e.g. <code>cartoons/</code>, <code>big_cars/</code>).` : ''}
+          <br>Use "Create New Show Subfolder" above to add program folders!
+        </div>
+      `;
+      return;
+    }
+
+    this.detectedShows.forEach(show => {
+      const chip = document.createElement('label');
+      chip.className = 'day-chip show-chip';
+      chip.style.display = 'inline-flex';
+      chip.style.alignItems = 'center';
+      chip.style.gap = '6px';
+      chip.style.padding = '6px 12px';
+      chip.style.borderRadius = '20px';
+      chip.style.background = 'var(--bg-card)';
+      chip.style.border = '1px solid var(--border-color)';
+      chip.style.fontSize = '0.85rem';
+      chip.style.cursor = 'pointer';
+
+      chip.innerHTML = `
+        <input type="checkbox" class="show-tag-checkbox" value="${this.escapeHtml(show.name)}" checked />
+        <i class="ri-folder-film-line text-cyan"></i>
+        <strong>${this.escapeHtml(show.name)}</strong>
+        <span class="file-count-badge" style="font-size: 0.72rem; opacity: 0.75; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 10px;">${show.mediaCount} vids</span>
+      `;
+
+      container.appendChild(chip);
+    });
+  }
+
+  populateTimeOfDayDropdowns() {
+    const todSelects = document.querySelectorAll('.tod-select');
+    const shows = this.detectedShows || [];
+
+    todSelects.forEach(select => {
+      select.innerHTML = '';
+      if (shows.length === 0) {
+        select.innerHTML = `<option value="">No show subfolders</option>`;
+        return;
+      }
+      shows.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.name;
+        opt.textContent = `${s.name} (${s.mediaCount} vids)`;
+        select.appendChild(opt);
+      });
+    });
+  }
+
+  async createShowSubfolder() {
+    const inputName = document.getElementById('input-new-show-folder-name');
+    const folderName = inputName ? inputName.value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_') : '';
+    const conf = this.currentChannel?.station_conf || {};
+    const contentDir = conf.content_dir || 'catalog/my_channel';
+
+    if (!folderName) {
+      alert('Please enter a valid subfolder name (e.g. cartoons, big_cars).');
+      return;
+    }
+
+    const fullPath = `${contentDir}/${folderName}`;
+    this.showToast(`Creating show subfolder '${fullPath}'...`, 'info');
+
+    try {
+      const res = await fetch('/api/create_dir', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: fullPath })
+      });
+
+      if (!res.ok) throw new Error('Failed to create directory');
+      const data = await res.json();
+
+      if (data.success) {
+        if (inputName) inputName.value = '';
+        this.showToast(`Created subfolder '${fullPath}'!`, 'success');
+        this.scanShowFolders();
+      }
+    } catch (err) {
+      this.showToast(`Error creating subfolder: ${err.message}`, 'error');
+    }
+  }
+
+  async applySmartSchedule() {
+    if (!this.currentChannel) return;
+
+    const selectedCheckboxes = document.querySelectorAll('.show-tag-checkbox:checked');
+    const selectedTags = Array.from(selectedCheckboxes).map(cb => cb.value);
+    const mode = document.getElementById('select-schedule-mode')?.value || 'alternate';
+
+    if (selectedTags.length === 0 && mode !== 'timeofday') {
+      alert('Please select at least one show subfolder or create subfolders first.');
+      return;
+    }
+
+    const conf = this.currentChannel.station_conf || {};
+    const allDayTemplate = {};
+
+    if (mode === 'alternate') {
+      for (let h = 0; h < 24; h++) {
+        const tag = selectedTags[h % selectedTags.length];
+        allDayTemplate[String(h)] = { "tags": tag };
+      }
+    } else if (mode === 'random') {
+      for (let h = 0; h < 24; h++) {
+        const randomIndex = Math.floor(Math.random() * selectedTags.length);
+        const tag = selectedTags[randomIndex];
+        allDayTemplate[String(h)] = { "tags": tag };
+      }
+    } else if (mode === 'timeofday') {
+      const morningTag = document.getElementById('sel-tod-morning')?.value || selectedTags[0] || 'content';
+      const afternoonTag = document.getElementById('sel-tod-afternoon')?.value || selectedTags[0] || 'content';
+      const eveningTag = document.getElementById('sel-tod-evening')?.value || selectedTags[0] || 'content';
+      const nightTag = document.getElementById('sel-tod-night')?.value || selectedTags[0] || 'content';
+
+      for (let h = 0; h < 24; h++) {
+        let tag = nightTag;
+        if (h >= 6 && h < 12) tag = morningTag;
+        else if (h >= 12 && h < 18) tag = afternoonTag;
+        else if (h >= 18 && h < 23) tag = eveningTag;
+
+        allDayTemplate[String(h)] = { "tags": tag };
+      }
+    }
+
+    conf.schedule_increment = 30;
+    conf.day_templates = {
+      all_day: allDayTemplate
+    };
+
+    conf.monday = "all_day";
+    conf.tuesday = "all_day";
+    conf.wednesday = "all_day";
+    conf.thursday = "all_day";
+    conf.friday = "all_day";
+    conf.saturday = "all_day";
+    conf.sunday = "all_day";
+
+    this.currentChannel.station_conf = conf;
+    this.syncJsonCodeFromModel();
+
+    this.showToast('Saving station config & compiling 24/7 week schedule...', 'info');
+
+    if (this.onSaveCallback) {
+      await this.onSaveCallback(this.currentChannel);
+    }
+
+    try {
+      const res = await fetch('/api/rebuild_schedules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channel_id: this.currentChannel.id })
+      });
+      if (res.ok) {
+        this.showToast('24/7 Multi-Show Schedule successfully compiled & active!', 'success');
+      }
+    } catch (e) {
+      this.showToast('Schedule applied! Click "Update Catalog & Rescan Media" to sync playback.', 'info');
     }
   }
 

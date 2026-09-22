@@ -366,17 +366,98 @@
           <!-- TAB 4: Schedule & Slot Overrides -->
           <div class="tab-pane" id="tab-schedule">
             <div class="schedule-editor-wrapper">
+              <!-- Smart Multi-Show Schedule Generator -->
+              <div class="card-box" style="margin-bottom: 20px;" id="sec-schedule-builder">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                  <div>
+                    <h4 class="box-title" style="margin: 0;"><i class="ri-magic-line text-cyan"></i> Smart Multi-Show Schedule Generator</h4>
+                    <p style="font-size: 0.82rem; color: var(--text-dim); margin: 4px 0 0 0;">
+                      Automatically create a 24/7 rotating schedule from detected show subfolders (e.g. <code>cartoons/</code>, <code>big_cars/</code>).
+                    </p>
+                  </div>
+                  <div style="display: flex; gap: 8px;">
+                    <button type="button" class="btn btn-sm btn-secondary" id="btn-scan-show-folders">
+                      <i class="ri-refresh-line"></i> Scan Show Subfolders
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Detected Shows List -->
+                <div style="margin-bottom: 12px;">
+                  <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 6px;">
+                    1. Detected Show Subfolders in Channel Directory:
+                  </label>
+                  <div id="detected-shows-container" style="display: flex; flex-wrap: wrap; gap: 8px; min-height: 38px; align-items: center;">
+                    <span style="font-size: 0.85rem; color: var(--text-muted);"><i class="ri-loader-4-line spin"></i> Click 'Scan Show Subfolders' to discover programs...</span>
+                  </div>
+                </div>
+
+                <!-- Create Show Subfolder Quick Input -->
+                <div style="background: rgba(255, 255, 255, 0.03); padding: 10px 14px; border-radius: 8px; border: 1px dashed var(--border-color); margin-bottom: 16px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                  <span style="font-size: 0.82rem; color: var(--text-dim);"><i class="ri-add-folder-line text-cyan"></i> Create New Show Subfolder:</span>
+                  <input type="text" id="input-new-show-folder-name" class="form-input" style="width: 200px; padding: 4px 10px; font-size: 0.85rem;" placeholder="e.g. cartoons, big_cars" />
+                  <button type="button" class="btn btn-sm btn-secondary" id="btn-create-show-subfolder">
+                    <i class="ri-folder-add-line"></i> Create Subfolder
+                  </button>
+                  <span class="field-hint" style="margin: 0; font-size: 0.78rem;">Creates subfolder in <code>catalog/&lt;channel&gt;/&lt;show&gt;</code></span>
+                </div>
+
+                <!-- Scheduling Options -->
+                <div class="form-grid" style="margin-bottom: 16px;">
+                  <div class="form-group col-6">
+                    <label for="select-schedule-mode">2. Scheduling Pattern</label>
+                    <select id="select-schedule-mode" class="form-select">
+                      <option value="alternate">Alternating Sequential Rotation (Cartoons → Big Cars → Show 3...)</option>
+                      <option value="random">Random Shuffle (Mix selected shows randomly across the day)</option>
+                      <option value="timeofday">Time-of-Day Blocks (Morning / Afternoon / Evening / Night)</option>
+                    </select>
+                  </div>
+
+                  <!-- Time-of-Day configuration panel (hidden by default) -->
+                  <div class="form-group col-12 hidden" id="group-timeofday-config">
+                    <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; display: block;">Assign Shows to Time Blocks:</label>
+                    <div class="form-grid" style="background: rgba(0,0,0,0.25); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+                      <div class="form-group col-3">
+                        <label style="font-size: 0.8rem; color: #fbbf24;">🌅 Morning (06:00 - 12:00)</label>
+                        <select id="sel-tod-morning" class="form-select tod-select" style="font-size: 0.85rem;"></select>
+                      </div>
+                      <div class="form-group col-3">
+                        <label style="font-size: 0.8rem; color: #60a5fa;">☀️ Afternoon (12:00 - 18:00)</label>
+                        <select id="sel-tod-afternoon" class="form-select tod-select" style="font-size: 0.85rem;"></select>
+                      </div>
+                      <div class="form-group col-3">
+                        <label style="font-size: 0.8rem; color: #a78bfa;">🌙 Evening / Prime (18:00 - 23:00)</label>
+                        <select id="sel-tod-evening" class="form-select tod-select" style="font-size: 0.85rem;"></select>
+                      </div>
+                      <div class="form-group col-3">
+                        <label style="font-size: 0.8rem; color: #f472b6;">🌌 Late Night (23:00 - 06:00)</label>
+                        <select id="sel-tod-night" class="form-select tod-select" style="font-size: 0.85rem;"></select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div style="display: flex; gap: 12px; align-items: center; justify-content: space-between;">
+                  <button type="button" class="btn btn-primary glow-cyan" id="btn-apply-smart-schedule">
+                    <i class="ri-play-list-add-line"></i> Generate & Apply 24/7 Multi-Show Schedule
+                  </button>
+                  <span style="font-size: 0.78rem; color: var(--text-dim); text-align: right;">
+                    Auto-builds <code>day_templates</code> JSON & recompiles FieldStation42 week schedule
+                  </span>
+                </div>
+              </div>
+
               <div class="schedule-toolbar">
                 <div class="schedule-info">
-                  <h4><i class="ri-calendar-check-line"></i> Day Templates & Slot Overrides</h4>
-                  <p>Organize programming blocks (Primetime, Morning Cartoons, Late Night) across days of the week.</p>
+                  <h4><i class="ri-calendar-check-line"></i> Day Templates & Custom Slot Overrides</h4>
+                  <p>Fine-tune specific time slots or advanced overrides across days of the week.</p>
                 </div>
                 <div style="display: flex; gap: 8px;">
                   <button type="button" class="btn btn-secondary btn-sm" id="btn-generate-247-schedule">
-                    <i class="ri-flashlight-line"></i> Auto Generate 24/7 Schedule
+                    <i class="ri-flashlight-line"></i> Auto Generate Default Template
                   </button>
                   <button type="button" class="btn btn-secondary btn-sm" id="btn-add-slot-override">
-                    <i class="ri-add-circle-line"></i> Add Slot Override
+                    <i class="ri-add-circle-line"></i> Add Custom Slot Override
                   </button>
                 </div>
               </div>

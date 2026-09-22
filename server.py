@@ -249,6 +249,9 @@ class FieldStationServerHandler(http.server.SimpleHTTPRequestHandler):
         elif url_path == '/api/ppv/generate_metadata':
             self.handle_ppv_generate_metadata()
             return
+        elif url_path == '/api/create_dir':
+            self.handle_create_dir()
+            return
         elif url_path == '/api/flirc/toggle':
             self.handle_flirc_toggle()
             return
@@ -260,6 +263,28 @@ class FieldStationServerHandler(http.server.SimpleHTTPRequestHandler):
             return
 
         self.send_error(404, "Endpoint not found")
+
+    def handle_create_dir(self):
+        content_length = int(self.headers.get("Content-Length", 0))
+        post_data = self.rfile.read(content_length)
+        try:
+            payload = json.loads(post_data.decode("utf-8")) if content_length > 0 else {}
+            target_path = payload.get("path")
+            if not target_path:
+                self.send_error(400, "Path required")
+                return
+
+            if not os.path.isabs(target_path):
+                target_path = os.path.abspath(os.path.join(FS42_HOME, target_path))
+
+            os.makedirs(target_path, exist_ok=True)
+
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"success": True, "path": target_path}).encode("utf-8"))
+        except Exception as e:
+            self.send_error(500, f"Error creating directory: {e}")
 
     def handle_get_confs(self):
         files_data = []
