@@ -136,8 +136,8 @@
             <button class="tab-btn" data-tab="tab-playback">
               <i class="ri-equalizer-line"></i> Playback & FX
             </button>
-            <button class="tab-btn" data-tab="tab-schedule">
-              <i class="ri-calendar-event-line"></i> Schedule & Slots
+            <button class="tab-btn" data-tab="tab-schedule" style="color: var(--primary-cyan); font-weight: 600;">
+              <i class="ri-calendar-event-line"></i> 📅 Multi-Show Schedule Builder
             </button>
             <button class="tab-btn" data-tab="tab-epg">
               <i class="ri-movie-2-line"></i> Upcoming Movies & Schedule
@@ -158,54 +158,31 @@
               <div class="form-group col-6">
                 <label for="input-network-name">Network Display Name <span class="required">*</span></label>
                 <input type="text" id="input-network-name" class="form-input" placeholder="e.g. Retro Animation Network" required />
-                <span class="field-hint">The title displayed on screen and in program guides.</span>
               </div>
-
               <div class="form-group col-3">
-                <label for="input-channel-number">Channel Number <span class="required">*</span></label>
-                <input type="number" id="input-channel-number" class="form-input" min="1" max="999" placeholder="e.g. 5" required />
-                <span class="field-hint">Tuning position (1-999).</span>
+                <label for="input-channel-num">Channel # <span class="required">*</span></label>
+                <input type="number" id="input-channel-num" class="form-input" min="1" max="999" placeholder="5" required />
               </div>
-
               <div class="form-group col-3">
-                <label for="input-network-type">Network Type <span class="required">*</span></label>
+                <label for="input-network-type">Network Type</label>
                 <select id="input-network-type" class="form-select">
-                  <option value="standard">Standard (Scheduled TV)</option>
-                  <option value="loop">Loop (Continuous Directory)</option>
-                  <option value="audio">Audio (Retro Radio / Music Station)</option>
-                  <option value="guide">Guide (Interactive TV Guide)</option>
-                  <option value="web">Web (Webpage Stream)</option>
-                  <option value="ppv">Pay-Per-View (On Demand PPV)</option>
-                  <option value="streaming">Streaming (IPTV / HLS Feed)</option>
-                  <option value="executable">Executable (Retro Emulator/App)</option>
+                  <option value="standard">Standard Broadcast (Multi-Show Schedule)</option>
+                  <option value="loop">Continuous Video Loop</option>
+                  <option value="audio">Audio Station (Radio / Music)</option>
+                  <option value="ppv">Pay-Per-View Movie Channel</option>
+                  <option value="streaming">IPTV / HLS Live Stream</option>
+                  <option value="web">Interactive Web Application</option>
+                  <option value="executable">Custom Command / Retro Emulator</option>
+                  <option value="guide">On-Screen TV Guide Channel</option>
                 </select>
-                <span class="field-hint">Determines station behavior.</span>
               </div>
-
               <div class="form-group col-6">
-                <label for="input-call-sign">Call Sign / Short Code</label>
-                <input type="text" id="input-call-sign" class="form-input" placeholder="e.g. WRET-TV" />
-                <span class="field-hint">Optional station identity prefix.</span>
+                <label for="input-call-sign">Station Call Sign</label>
+                <input type="text" id="input-call-sign" class="form-input" placeholder="e.g. WFS42-TV" />
               </div>
-
               <div class="form-group col-6">
-                <label for="input-station-desc">Station Description</label>
-                <input type="text" id="input-station-desc" class="form-input" placeholder="e.g. Classic 80s cartoons 24/7" />
-                <span class="field-hint">Internal note / guide summary.</span>
-              </div>
-
-              <div class="form-group col-12 card-box">
-                <h4 class="box-title"><i class="ri-shield-user-line"></i> Parental Control & Access</h4>
-                <div class="toggle-row">
-                  <div class="toggle-label">
-                    <strong>Parental Control Lock</strong>
-                    <p>Requires `parental_controls_pin` set in main_config.json to tune.</p>
-                  </div>
-                  <label class="switch">
-                    <input type="checkbox" id="input-parental-controls">
-                    <span class="slider round"></span>
-                  </label>
-                </div>
+                <label for="input-description">Station Description</label>
+                <input type="text" id="input-description" class="form-input" placeholder="24/7 Retro Cartoons and Classic Movies" />
               </div>
             </form>
           </div>
@@ -222,12 +199,23 @@
                   </button>
                 </div>
                 <div class="input-with-action">
-                  <input type="text" id="input-content-dir" class="form-input" placeholder="catalog/music/ or /media/audio/podcasts" />
+                  <input type="text" id="input-content-dir" class="form-input" placeholder="catalog/cartoons/ or /media/videos/shows" />
                   <button type="button" class="btn btn-secondary btn-browse-dir-target" data-target="input-content-dir">
                     <i class="ri-folder-open-line"></i> Browse Folder
                   </button>
                 </div>
                 <span class="field-hint">Path to folder containing video or audio files for this channel.</span>
+
+                <!-- Schedule Shortcut Banner -->
+                <div class="content-type-sec sec-standard sec-loop" style="background: rgba(0, 229, 255, 0.08); border: 1px solid rgba(0, 229, 255, 0.25); border-radius: 8px; padding: 12px 16px; margin-top: 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                  <div>
+                    <strong style="color: var(--primary-cyan); font-size: 0.9rem;"><i class="ri-calendar-event-line"></i> Want to schedule Cartoons, Big Cars, and multiple shows?</strong>
+                    <p style="font-size: 0.82rem; color: var(--text-dim); margin: 2px 0 0 0;">Use the Multi-Show Schedule Builder to auto-rotate show subfolders across 24 hours.</p>
+                  </div>
+                  <button type="button" class="btn btn-primary glow-cyan btn-sm" id="btn-jump-to-schedule-tab">
+                    <i class="ri-magic-line"></i> Open Schedule Builder Tab
+                  </button>
+                </div>
               </div>
 
               <!-- Streaming URL Section -->

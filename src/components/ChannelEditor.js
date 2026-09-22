@@ -765,6 +765,14 @@ export class ChannelEditor {
     if (btnApply) {
       btnApply.addEventListener('click', () => this.applySmartSchedule());
     }
+
+    const btnJump = document.getElementById('btn-jump-to-schedule-tab');
+    if (btnJump) {
+      btnJump.addEventListener('click', () => {
+        const schedTabBtn = document.querySelector('.tab-btn[data-tab="tab-schedule"]');
+        if (schedTabBtn) schedTabBtn.click();
+      });
+    }
   }
 
   async scanShowFolders() {

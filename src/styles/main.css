@@ -456,7 +456,11 @@ body {
 
 .editor-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
+  row-gap: 6px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 4px;
 }
 
 .tab-btn {
