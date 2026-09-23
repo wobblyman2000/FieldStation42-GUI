@@ -172,13 +172,12 @@ export class RecipeModal {
       case 'audio':
         preset = {
           station_conf: {
-            network_name: 'Retro Radio & Music Station',
-            channel_number: 104,
-            network_type: 'audio',
-            call_sign: 'WFM-104',
-            description: '24/7 Retro Music & Audio Visualizer Channel',
-            content_dir: 'catalog/music',
-            commercial_free: true
+            network_name: 'Music42',
+            network_type: 'standard',
+            media_filter: 'audio',
+            content_dir: 'catalog/music42/',
+            commercial_dir: 'commercials',
+            bump_dir: 'bumps'
           }
         };
         break;

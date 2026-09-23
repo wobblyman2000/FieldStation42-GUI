@@ -7,6 +7,7 @@ import sys
 import shutil
 import subprocess
 import signal
+import time
 
 PORT = 4240
 GUI_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -306,6 +307,12 @@ class FieldStationServerHandler(http.server.SimpleHTTPRequestHandler):
                                     "filename": filename,
                                     "station_conf": content.get("station_conf", {})
                                 })
+                            elif "network_name" in content:
+                                files_data.append({
+                                    "id": filename,
+                                    "filename": filename,
+                                    "station_conf": content
+                                })
                     except Exception as e:
                         print(f"Error reading {filename}: {e}")
 
@@ -358,15 +365,32 @@ class FieldStationServerHandler(http.server.SimpleHTTPRequestHandler):
             with open(filepath, "w", encoding="utf-8") as f:
                 json.dump({"station_conf": station_conf}, f, indent=2)
 
-            # Auto trigger FieldStation42 schedule update in background
+            # Rebuild catalog and schedules using -r and -w
             station_script = os.path.join(FS42_HOME, "station_42.py")
+            net_name = station_conf.get("network_name")
             if os.path.exists(station_script):
-                subprocess.Popen(
-                    [VENV_PYTHON, station_script, "-r", "-d"],
-                    cwd=FS42_HOME,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL
-                )
+                cmd = [VENV_PYTHON, station_script, "-r", net_name, "-w", net_name] if net_name else [VENV_PYTHON, station_script, "-r", "-w"]
+                print(f"🔄 Auto-building catalog and week schedule for saved channel: {cmd}")
+                try:
+                    subprocess.run(cmd, cwd=FS42_HOME, capture_output=True, text=True, timeout=45)
+                except Exception as build_err:
+                    print(f"Warning: Schedule build process had issue: {build_err}")
+
+            # Auto reload player engine if running so StationManager loads the new channel immediately
+            if is_player_running():
+                print("🔄 Restarting playback engine to load newly saved channel into StationManager...")
+                try:
+                    subprocess.call(["pkill", "-f", "field_player.py"])
+                    time.sleep(0.5)
+                    player_script = os.path.join(FS42_HOME, "field_player.py")
+                    subprocess.Popen(
+                        [VENV_PYTHON, player_script],
+                        cwd=FS42_HOME,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL
+                    )
+                except Exception as pe:
+                    print(f"Error restarting player after saving channel: {pe}")
 
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
@@ -374,7 +398,7 @@ class FieldStationServerHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps({
                 "success": True, 
                 "filename": filename,
-                "message": f"Saved configuration and updated FieldStation42 schedules"
+                "message": f"Saved configuration, rebuilt schedules, and updated playback engine"
             }).encode("utf-8"))
         except Exception as e:
             self.send_error(500, f"Error saving configuration: {e}")
@@ -838,50 +862,51 @@ class FieldStationServerHandler(http.server.SimpleHTTPRequestHandler):
 
         items = []
         if os.path.exists(abs_dir) and os.path.isdir(abs_dir):
-            for filename in sorted(os.listdir(abs_dir)):
-                file_path = os.path.join(abs_dir, filename)
-                if os.path.isdir(file_path) or filename.startswith('.'):
-                    continue
+            for root, dirs, files in os.walk(abs_dir):
+                for filename in sorted(files):
+                    if filename.startswith('.'):
+                        continue
 
-                base, ext = os.path.splitext(filename)
-                if ext.lower() in VIDEO_EXTS:
-                    import re
-                    clean_title = re.sub(r'_+', ' ', base).strip()
-                    halves = clean_title.split(' ')
-                    mid = len(halves) // 2
-                    if len(halves) > 2 and ' '.join(halves[:mid]) == ' '.join(halves[mid:]):
-                        clean_title = ' '.join(halves[:mid])
+                    file_path = os.path.join(root, filename)
+                    base, ext = os.path.splitext(filename)
+                    if ext.lower() in VIDEO_EXTS:
+                        import re
+                        clean_title = re.sub(r'_+', ' ', base).strip()
+                        halves = clean_title.split(' ')
+                        mid = len(halves) // 2
+                        if len(halves) > 2 and ' '.join(halves[:mid]) == ' '.join(halves[mid:]):
+                            clean_title = ' '.join(halves[:mid])
 
-                    info = ""
-                    desc = ""
-                    nfo_path = os.path.join(abs_dir, f"{base}.nfo")
-                    if os.path.exists(nfo_path):
-                        try:
-                            with open(nfo_path, 'r', encoding='utf-8', errors='ignore') as f:
-                                lines = [line.strip() for line in f if line.strip()]
-                                if len(lines) >= 1: clean_title = lines[0]
-                                if len(lines) >= 2: info = lines[1]
-                                if len(lines) >= 3: desc = " ".join(lines[2:])
-                        except Exception:
-                            pass
+                        info = ""
+                        desc = ""
+                        nfo_path = os.path.join(root, f"{base}.nfo")
+                        if os.path.exists(nfo_path):
+                            try:
+                                with open(nfo_path, 'r', encoding='utf-8', errors='ignore') as f:
+                                    lines = [line.strip() for line in f if line.strip()]
+                                    if len(lines) >= 1: clean_title = lines[0]
+                                    if len(lines) >= 2: info = lines[1]
+                                    if len(lines) >= 3: desc = " ".join(lines[2:])
+                            except Exception:
+                                pass
 
-                    poster_url = None
-                    for img_ext in ['.jpg', '.jpeg', '.png', '.webp']:
-                        img_path = os.path.join(abs_dir, f"{base}{img_ext}")
-                        if os.path.exists(img_path):
-                            poster_url = f"/api/file?path={img_path}"
-                            break
+                        poster_url = None
+                        for img_ext in ['.jpg', '.jpeg', '.png', '.webp']:
+                            img_path = os.path.join(root, f"{base}{img_ext}")
+                            if os.path.exists(img_path):
+                                poster_url = f"/api/file?path={img_path}"
+                                break
 
-                    rel_path = os.path.relpath(file_path, FS42_HOME)
-                    items.append({
-                        "filename": filename,
-                        "file_path": file_path,
-                        "rel_path": rel_path,
-                        "title": clean_title,
-                        "info": info,
-                        "description": desc,
-                        "poster_url": poster_url
-                    })
+                        rel_path = os.path.relpath(file_path, FS42_HOME)
+                        items.append({
+                            "filename": filename,
+                            "file_path": file_path,
+                            "rel_path": rel_path,
+                            "title": clean_title,
+                            "info": info,
+                            "description": desc,
+                            "poster_url": poster_url
+                        })
 
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
@@ -936,36 +961,29 @@ class FieldStationServerHandler(http.server.SimpleHTTPRequestHandler):
 
             gen_nfo = 0
             gen_poster = 0
-            video_extensions = ('.mp4', '.avi', '.mkv', '.mov', '.wmv', '.flv', '.webm', '.m4v')
-
-            for filename in sorted(os.listdir(abs_dir)):
-                file_path = os.path.join(abs_dir, filename)
-                if os.path.isdir(file_path) or filename.startswith('.'):
-                    continue
-
-                base, ext = os.path.splitext(filename)
-                if ext.lower() in video_extensions:
-                    nfo_path = os.path.join(abs_dir, f"{base}.nfo")
-                    jpg_path = os.path.join(abs_dir, f"{base}.jpg")
-
-                    # Generate NFO if missing
-                    if not os.path.exists(nfo_path):
+            for root, dirs, files in os.walk(abs_dir):
+                for filename in sorted(files):
+                    if filename.startswith('.'):
+                        continue
+                    file_path = os.path.join(root, filename)
+                    base, ext = os.path.splitext(filename)
+                    if ext.lower() in VIDEO_EXTS:
                         import re
-                        clean_title = re.sub(r'_+', ' ', base).strip()
-                        year_match = re.search(r'\(?((?:19|20)\d{2})\)?', clean_title)
-                        year_str = year_match.group(1) if year_match else ""
-                        title_clean = re.sub(r'\(?(?:19|20)\d{2}\)?', '', clean_title).strip()
-                        title_clean = re.sub(r'\[.*?\]', '', title_clean).strip()
+                        title_clean = re.sub(r'_+', ' ', base).strip()
+                        nfo_path = os.path.join(root, f"{base}.nfo")
+                        jpg_path = os.path.join(root, f"{base}.jpg")
 
-                        info_str = f"{year_str} • Feature Film" if year_str else "Feature Film"
-                        desc_str = f"{title_clean} on-demand feature presentation for Pay-Per-View Cinema."
+                        # Generate NFO if missing
+                        if not os.path.exists(nfo_path):
+                            info_str = "Feature Film"
+                            desc_str = f"{title_clean} on-demand feature presentation for Pay-Per-View Cinema."
 
-                        try:
-                            with open(nfo_path, "w", encoding="utf-8") as f:
-                                f.write(f"{title_clean}\n{info_str}\n{desc_str}\n")
-                            gen_nfo += 1
-                        except Exception:
-                            pass
+                            try:
+                                with open(nfo_path, "w", encoding="utf-8") as f:
+                                    f.write(f"{title_clean}\n{info_str}\n{desc_str}\n")
+                                gen_nfo += 1
+                            except Exception:
+                                pass
 
                     # Generate Poster if missing
                     if not os.path.exists(jpg_path):

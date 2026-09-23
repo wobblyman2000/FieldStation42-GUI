@@ -86,6 +86,7 @@ export class ChannelEditor {
     this.inputDesc = document.getElementById('input-station-desc');
     this.inputParental = document.getElementById('input-parental-controls');
 
+    this.inputMediaFilter = document.getElementById('input-media-filter');
     this.inputContentDir = document.getElementById('input-content-dir');
     this.inputStreamUrl = document.getElementById('input-stream-url');
     this.inputWebUrl = document.getElementById('input-web-url');
@@ -103,8 +104,8 @@ export class ChannelEditor {
 
     // Attach listeners to sync back to data model reactively
     const formElements = [
-      this.inputName, this.inputNum, this.inputType, this.inputCallSign,
-      this.inputDesc, this.inputParental, this.inputContentDir,
+      this.inputName, this.inputNum, this.inputType, this.inputMediaFilter,
+      this.inputCallSign, this.inputDesc, this.inputParental, this.inputContentDir,
       this.inputStreamUrl, this.inputWebUrl, this.inputExecCmd,
       this.inputCommercialDir, this.inputBumpsDir, this.inputPlaySound,
       this.inputSoundPath, this.inputCommercialFree, this.inputAspectRatio,
@@ -120,10 +121,51 @@ export class ChannelEditor {
       });
     });
 
+    const chkScheduleCommFree = document.getElementById('chk-schedule-commercial-free');
+    if (chkScheduleCommFree && this.inputCommercialFree) {
+      chkScheduleCommFree.addEventListener('change', () => {
+        this.inputCommercialFree.checked = chkScheduleCommFree.checked;
+        if (!this.isUpdatingFromCode && this.currentChannel) {
+          this.updateModelFromForm();
+        }
+      });
+      this.inputCommercialFree.addEventListener('change', () => {
+        chkScheduleCommFree.checked = this.inputCommercialFree.checked;
+      });
+    }
+
     // Network type change visibility logic
     if (this.inputType) {
       this.inputType.addEventListener('change', () => {
+        if (this.inputType.value === 'audio') {
+          if (this.inputMediaFilter) this.inputMediaFilter.value = 'audio';
+          if (this.inputContentDir && !this.inputContentDir.value) {
+            this.inputContentDir.value = 'catalog/music42/';
+          }
+          if (this.inputCommercialDir && !this.inputCommercialDir.value) {
+            this.inputCommercialDir.value = 'commercials';
+          }
+          if (this.inputBumpsDir && !this.inputBumpsDir.value) {
+            this.inputBumpsDir.value = 'bumps';
+          }
+        } else if (this.inputType.value === 'standard' && this.inputMediaFilter?.value === 'audio') {
+          if (this.inputMediaFilter) this.inputMediaFilter.value = 'video';
+        }
         this.updateVisibilityForNetworkType(this.inputType.value);
+        if (!this.isUpdatingFromCode && this.currentChannel) {
+          this.updateModelFromForm();
+        }
+      });
+    }
+
+    if (this.inputMediaFilter) {
+      this.inputMediaFilter.addEventListener('change', () => {
+        if (this.inputMediaFilter.value === 'audio') {
+          if (this.inputType) this.inputType.value = 'audio';
+        }
+        if (!this.isUpdatingFromCode && this.currentChannel) {
+          this.updateModelFromForm();
+        }
       });
     }
 
@@ -262,7 +304,11 @@ export class ChannelEditor {
 
     if (this.inputName) this.inputName.value = conf.network_name || '';
     if (this.inputNum) this.inputNum.value = conf.channel_number !== undefined ? conf.channel_number : '';
-    if (this.inputType) this.inputType.value = conf.network_type || 'standard';
+
+    const isAudioChannel = conf.media_filter === 'audio' || conf.network_type === 'audio';
+    if (this.inputType) this.inputType.value = isAudioChannel ? 'audio' : (conf.network_type || 'standard');
+    if (this.inputMediaFilter) this.inputMediaFilter.value = conf.media_filter || (isAudioChannel ? 'audio' : 'video');
+
     if (this.inputCallSign) this.inputCallSign.value = conf.call_sign || '';
     if (this.inputDesc) this.inputDesc.value = conf.description || '';
     if (this.inputParental) this.inputParental.checked = !!conf.parental_controls;
@@ -271,18 +317,31 @@ export class ChannelEditor {
     if (this.inputStreamUrl) this.inputStreamUrl.value = conf.stream_url || '';
     if (this.inputWebUrl) this.inputWebUrl.value = conf.web_url || '';
     if (this.inputExecCmd) this.inputExecCmd.value = conf.exec_command || '';
-    if (this.inputCommercialDir) this.inputCommercialDir.value = conf.commercials_dir || '';
-    if (this.inputBumpsDir) this.inputBumpsDir.value = conf.bumps_dir || '';
+    if (this.inputCommercialDir) this.inputCommercialDir.value = conf.commercials_dir || conf.commercial_dir || '';
+    if (this.inputBumpsDir) this.inputBumpsDir.value = conf.bumps_dir || conf.bump_dir || '';
 
     if (this.inputPlaySound) this.inputPlaySound.checked = conf.play_sound !== false;
     if (this.inputSoundPath) this.inputSoundPath.value = conf.sound_to_play || '';
 
     if (this.inputCommercialFree) this.inputCommercialFree.checked = !!conf.commercial_free;
+    const chkScheduleCommFree = document.getElementById('chk-schedule-commercial-free');
+    if (chkScheduleCommFree) chkScheduleCommFree.checked = !!conf.commercial_free;
+
+    const firstBumper = conf.start_bump || Object.values(conf.day_templates?.all_day || {}).find(s => s && s.start_bump)?.start_bump;
+    const chkInsertBumpers = document.getElementById('chk-schedule-insert-bumpers');
+    const inputBumperSource = document.getElementById('input-schedule-bumper-source');
+    if (chkInsertBumpers) chkInsertBumpers.checked = !!firstBumper;
+    if (inputBumperSource && firstBumper) inputBumperSource.value = firstBumper;
+
+    const hasSequence = !!Object.values(conf.day_templates?.all_day || {}).find(s => s && s.sequence);
+    const chkSequentialOrder = document.getElementById('chk-schedule-sequential-order');
+    if (chkSequentialOrder) chkSequentialOrder.checked = hasSequence;
+
     if (this.inputAspectRatio) this.inputAspectRatio.value = conf.aspect_ratio || '4:3';
     if (this.inputVideoScramble) this.inputVideoScramble.value = conf.video_scramble_fx || 'none';
     if (this.inputAudioScramble) this.inputAudioScramble.value = conf.audio_scramble_fx || 'none';
 
-    this.updateVisibilityForNetworkType(conf.network_type || 'standard');
+    this.updateVisibilityForNetworkType(isAudioChannel ? 'audio' : (conf.network_type || 'standard'));
     this.renderSlotOverrides(conf.slot_overrides || []);
     this.syncJsonCodeFromModel();
 
@@ -302,7 +361,22 @@ export class ChannelEditor {
 
     conf.network_name = this.inputName?.value || 'New Channel';
     conf.channel_number = this.inputNum?.value ? parseInt(this.inputNum.value, 10) : 1;
-    conf.network_type = this.inputType?.value || 'standard';
+
+    const selectedType = this.inputType?.value || 'standard';
+    const selectedFilter = this.inputMediaFilter?.value || 'video';
+
+    if (selectedType === 'audio' || selectedFilter === 'audio') {
+      conf.network_type = 'standard';
+      conf.media_filter = 'audio';
+    } else {
+      conf.network_type = selectedType;
+      if (selectedFilter !== 'video') {
+        conf.media_filter = selectedFilter;
+      } else {
+        delete conf.media_filter;
+      }
+    }
+
     conf.call_sign = this.inputCallSign?.value || '';
     conf.description = this.inputDesc?.value || '';
     conf.parental_controls = !!this.inputParental?.checked;
@@ -311,8 +385,14 @@ export class ChannelEditor {
     conf.stream_url = this.inputStreamUrl?.value || '';
     conf.web_url = this.inputWebUrl?.value || '';
     conf.exec_command = this.inputExecCmd?.value || '';
-    conf.commercials_dir = this.inputCommercialDir?.value || '';
-    conf.bumps_dir = this.inputBumpsDir?.value || '';
+    if (this.inputCommercialDir?.value) {
+      if ('commercial_dir' in conf) conf.commercial_dir = this.inputCommercialDir.value;
+      else conf.commercials_dir = this.inputCommercialDir.value;
+    }
+    if (this.inputBumpsDir?.value) {
+      if ('bump_dir' in conf) conf.bump_dir = this.inputBumpsDir.value;
+      else conf.bumps_dir = this.inputBumpsDir.value;
+    }
 
     conf.play_sound = !!this.inputPlaySound?.checked;
     conf.sound_to_play = this.inputSoundPath?.value || '';
@@ -333,8 +413,9 @@ export class ChannelEditor {
     if (chNumBadge) chNumBadge.textContent = `CH ${chNumStr}`;
     if (netNameTitle) netNameTitle.textContent = conf.network_name;
     if (typeTag) {
-      typeTag.textContent = conf.network_type.toUpperCase();
-      typeTag.className = `type-tag tag-${conf.network_type.toLowerCase()}`;
+      const displayTag = (selectedType === 'audio' || selectedFilter === 'audio') ? 'AUDIO' : conf.network_type.toUpperCase();
+      typeTag.textContent = displayTag;
+      typeTag.className = `type-tag tag-${displayTag.toLowerCase()}`;
     }
 
     this.syncJsonCodeFromModel();
@@ -937,19 +1018,39 @@ export class ChannelEditor {
       return;
     }
 
+    const insertBumpers = document.getElementById('chk-schedule-insert-bumpers')?.checked;
+    const bumperFreq = parseInt(document.getElementById('select-schedule-bumper-freq')?.value || '3', 10);
+    const bumperSource = document.getElementById('input-schedule-bumper-source')?.value.trim() || 'bumps';
+    const isCommercialFree = document.getElementById('chk-schedule-commercial-free')?.checked;
+    const isSequential = document.getElementById('chk-schedule-sequential-order')?.checked;
+
     const conf = this.currentChannel.station_conf || {};
     const allDayTemplate = {};
 
     if (mode === 'alternate') {
       for (let h = 0; h < 24; h++) {
         const tag = selectedTags[h % selectedTags.length];
-        allDayTemplate[String(h)] = { "tags": tag };
+        const slotObj = { "tags": tag };
+        if (isSequential) {
+          slotObj.sequence = "sequential";
+        }
+        if (insertBumpers && (h % bumperFreq === 0)) {
+          slotObj.start_bump = bumperSource;
+        }
+        allDayTemplate[String(h)] = slotObj;
       }
     } else if (mode === 'random') {
       for (let h = 0; h < 24; h++) {
         const randomIndex = Math.floor(Math.random() * selectedTags.length);
         const tag = selectedTags[randomIndex];
-        allDayTemplate[String(h)] = { "tags": tag };
+        const slotObj = { "tags": tag };
+        if (isSequential) {
+          slotObj.sequence = "sequential";
+        }
+        if (insertBumpers && (h % bumperFreq === 0)) {
+          slotObj.start_bump = bumperSource;
+        }
+        allDayTemplate[String(h)] = slotObj;
       }
     } else if (mode === 'timeofday') {
       const morningTag = document.getElementById('sel-tod-morning')?.value || selectedTags[0] || 'content';
@@ -963,8 +1064,19 @@ export class ChannelEditor {
         else if (h >= 12 && h < 18) tag = afternoonTag;
         else if (h >= 18 && h < 23) tag = eveningTag;
 
-        allDayTemplate[String(h)] = { "tags": tag };
+        const slotObj = { "tags": tag };
+        if (isSequential) {
+          slotObj.sequence = "sequential";
+        }
+        if (insertBumpers && (h % bumperFreq === 0)) {
+          slotObj.start_bump = bumperSource;
+        }
+        allDayTemplate[String(h)] = slotObj;
       }
+    }
+
+    if (isCommercialFree !== undefined) {
+      conf.commercial_free = !!isCommercialFree;
     }
 
     conf.schedule_increment = 30;

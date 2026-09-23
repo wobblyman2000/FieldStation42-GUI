@@ -182,6 +182,16 @@
                 <span class="field-hint">Determines station behavior.</span>
               </div>
 
+              <div class="form-group col-3">
+                <label for="input-media-filter">Media Filter (`media_filter`)</label>
+                <select id="input-media-filter" class="form-select">
+                  <option value="video">Video Only (Default)</option>
+                  <option value="audio">Audio Only (Music / Radio)</option>
+                  <option value="mixed">Mixed (Video & Audio)</option>
+                </select>
+                <span class="field-hint">Media file type filter.</span>
+              </div>
+
               <div class="form-group col-6">
                 <label for="input-call-sign">Call Sign / Short Code</label>
                 <input type="text" id="input-call-sign" class="form-input" placeholder="e.g. WRET-TV" />
@@ -445,6 +455,65 @@
                         <select id="sel-tod-night" class="form-select tod-select" style="font-size: 0.85rem;"></select>
                       </div>
                     </div>
+                  </div>
+                </div>
+
+                <!-- Bumper & Commercial Options -->
+                <div class="form-grid" style="margin-bottom: 16px; background: rgba(0, 229, 255, 0.04); border: 1px solid rgba(0, 229, 255, 0.15); border-radius: 8px; padding: 14px;">
+                  <div class="form-group col-6">
+                    <div class="toggle-row" style="margin-top: 2px;">
+                      <div class="toggle-label">
+                        <strong style="color: var(--primary-cyan); font-size: 0.88rem;"><i class="ri-advertisement-line"></i> Commercial-Free Channel</strong>
+                        <p style="font-size: 0.78rem; color: var(--text-dim); margin-top: 2px;">Disables mid-episode commercial breaks across this channel.</p>
+                      </div>
+                      <label class="switch">
+                        <input type="checkbox" id="chk-schedule-commercial-free">
+                        <span class="slider round"></span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="form-group col-6">
+                    <div class="toggle-row" style="margin-top: 2px;">
+                      <div class="toggle-label">
+                        <strong style="color: var(--primary-cyan); font-size: 0.88rem;"><i class="ri-tv-2-line"></i> Pre-Show Station Bumper / Station ID</strong>
+                        <p style="font-size: 0.78rem; color: var(--text-dim); margin-top: 2px;">Plays a promo video right before the show starts (never cuts into episodes).</p>
+                      </div>
+                      <label class="switch">
+                        <input type="checkbox" id="chk-schedule-insert-bumpers" checked>
+                        <span class="slider round"></span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="form-group col-6">
+                    <div class="toggle-row" style="margin-top: 2px;">
+                      <div class="toggle-label">
+                        <strong style="color: var(--primary-cyan); font-size: 0.88rem;"><i class="ri-sort-asc"></i> Sequential Episode Order (S01E01, S01E02...)</strong>
+                        <p style="font-size: 0.78rem; color: var(--text-dim); margin-top: 2px;">Plays episodes in strict order across season folders instead of random.</p>
+                      </div>
+                      <label class="switch">
+                        <input type="checkbox" id="chk-schedule-sequential-order" checked>
+                        <span class="slider round"></span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="form-group col-6 group-bumper-config">
+                    <label for="select-schedule-bumper-freq" style="font-size: 0.82rem;">Bumper Frequency</label>
+                    <select id="select-schedule-bumper-freq" class="form-select" style="font-size: 0.85rem;">
+                      <option value="3">Every 3 Hours (Recommended - e.g. 12am, 3am, 6am, 9am...)</option>
+                      <option value="1">Every Hour (Before every show slot)</option>
+                      <option value="2">Every 2 Hours</option>
+                      <option value="4">Every 4 Hours</option>
+                      <option value="6">Every 6 Hours</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group col-6 group-bumper-config">
+                    <label for="input-schedule-bumper-source" style="font-size: 0.82rem;">Bumper Video or Folder (`start_bump`)</label>
+                    <input type="text" id="input-schedule-bumper-source" class="form-input" style="font-size: 0.85rem;" placeholder="bumps or station_id.mp4" value="bumps" />
+                    <span class="field-hint" style="font-size: 0.76rem; margin-top: 2px;">Video file or promo folder relative to <code>content_dir</code>.</span>
                   </div>
                 </div>
 
