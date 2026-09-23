@@ -11,7 +11,7 @@ class App {
     this.channels = [];
     this.activeChannelId = null;
 
-    this.crtPreview = new CrtPreview();
+    this.crtPreview = new CrtPreview((direction) => this.handleTuneNextChannel(direction));
     this.recipeModal = new RecipeModal((preset) => this.handleApplyRecipe(preset));
 
     this.remoteControl = new RemoteControl(
@@ -30,9 +30,7 @@ class App {
     );
 
     this.channelList = new ChannelList('channel-list-container', (channel) => {
-      this.activeChannelId = channel.id;
-      this.channelEditor.loadChannel(channel);
-      this.crtPreview.updatePreview(channel);
+      this.selectAndTuneChannel(channel);
     });
 
     this.channelEditor = new ChannelEditor(
@@ -414,6 +412,58 @@ class App {
     this.channelEditor.loadChannel(dupCh);
     this.crtPreview.updatePreview(dupCh);
     this.handleSaveChannel(dupCh);
+  }
+
+  handleTuneNextChannel(direction = 'up') {
+    if (!this.channels || this.channels.length === 0) return;
+
+    const currentIdx = this.channels.findIndex(c => c.id === this.activeChannelId);
+    let nextIdx = 0;
+    if (currentIdx !== -1) {
+      if (direction === 'up') {
+        nextIdx = (currentIdx + 1) % this.channels.length;
+      } else {
+        nextIdx = (currentIdx - 1 + this.channels.length) % this.channels.length;
+      }
+    }
+
+    const targetCh = this.channels[nextIdx];
+    this.selectAndTuneChannel(targetCh);
+  }
+
+  handleTuneChannel(chNum) {
+    if (!this.channels || this.channels.length === 0) return;
+
+    let targetCh = this.channels.find(c => Number(c.station_conf?.channel_number) === Number(chNum));
+    if (!targetCh) {
+      targetCh = this.channels[0];
+    }
+
+    this.selectAndTuneChannel(targetCh);
+  }
+
+  async selectAndTuneChannel(channel) {
+    if (!channel) return;
+
+    this.activeChannelId = channel.id;
+    this.channelList.setChannels(this.channels, this.activeChannelId);
+    this.channelEditor.loadChannel(channel);
+    this.crtPreview.updatePreview(channel);
+
+    const chNum = channel.station_conf?.channel_number;
+    const netName = channel.station_conf?.network_name || `CH ${chNum}`;
+
+    this.showToast(`Tuned to CH ${chNum} - ${netName}`, 'info');
+
+    try {
+      await fetch('/api/player/channel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command: 'direct', channel: chNum })
+      });
+    } catch (e) {
+      console.warn('Error tuning player engine via API socket:', e);
+    }
   }
 
   exportAllConfs() {

@@ -1,5 +1,6 @@
 export class CrtPreview {
-  constructor() {
+  constructor(onChannelChange) {
+    this.onChannelChange = onChannelChange;
     this.screenEl = document.getElementById('crt-sim-screen');
     this.osdCh = document.getElementById('crt-osd-ch');
     this.osdName = document.getElementById('crt-osd-name');
@@ -43,10 +44,29 @@ export class CrtPreview {
 
     const knob = document.getElementById('knob-tuner');
     if (knob) {
+      const turnKnob = (dir) => {
+        let currentRot = parseInt(knob.dataset.rot || 0, 10);
+        let nextRot = dir === 'down' ? currentRot - 45 : currentRot + 45;
+        knob.style.transform = `rotate(${nextRot}deg)`;
+        knob.dataset.rot = nextRot;
+
+        if (typeof this.onChannelChange === 'function') {
+          this.onChannelChange(dir);
+        }
+      };
+
       knob.addEventListener('click', () => {
-        knob.style.transform = `rotate(${(parseInt(knob.dataset.rot || 0) + 45) % 360}deg)`;
-        knob.dataset.rot = (parseInt(knob.dataset.rot || 0) + 45) % 360;
+        turnKnob('up');
       });
+
+      knob.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        if (e.deltaY < 0) {
+          turnKnob('up');
+        } else if (e.deltaY > 0) {
+          turnKnob('down');
+        }
+      }, { passive: false });
     }
   }
 
