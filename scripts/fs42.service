@@ -1,0 +1,13 @@
+[Unit]
+Description=FieldStation42 Broadcasting Station & Web GUI
+After=graphical-session.target network.target
+
+[Service]
+Type=forking
+ExecStart=/home/dave/FieldStation42/start_fieldstation42.sh --no-browser
+ExecStop=/home/dave/FieldStation42/stop_fieldstation42.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

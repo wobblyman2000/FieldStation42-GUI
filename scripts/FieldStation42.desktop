@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=FieldStation42
+Comment=Launch FieldStation42 Retro TV Broadcasting Station & GUI
+Exec=/home/dave/FieldStation42/start_fieldstation42.sh
+Icon=tv
+Terminal=false
+Categories=AudioVideo;Player;TV;
+Keywords=TV;CRT;Broadcast;FieldStation42;Retro;
+StartupNotify=true
