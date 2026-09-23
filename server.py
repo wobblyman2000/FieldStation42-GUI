@@ -703,7 +703,21 @@ class FieldStationServerHandler(http.server.SimpleHTTPRequestHandler):
                 except Exception:
                     pass
 
-            station_name = payload.get("station")
+            station_name = payload.get("station") or payload.get("station_name") or payload.get("network_name")
+            channel_id = payload.get("channel_id") or payload.get("filename")
+
+            if not station_name and channel_id:
+                filepath = os.path.join(CONFS_DIR, channel_id)
+                if not filepath.endswith(".json"):
+                    filepath += ".json"
+                if os.path.exists(filepath):
+                    try:
+                        with open(filepath, "r", encoding="utf-8") as f:
+                            cdata = json.load(f)
+                            station_name = cdata.get("station_conf", {}).get("network_name") or cdata.get("network_name")
+                    except Exception:
+                        pass
+
             station_script = os.path.join(FS42_HOME, "station_42.py")
             if not os.path.exists(station_script):
                 self.send_error(404, "station_42.py script not found")
@@ -724,6 +738,22 @@ class FieldStationServerHandler(http.server.SimpleHTTPRequestHandler):
                 text=True,
                 timeout=60
             )
+
+            # Auto reload player engine if running so StationManager loads updated schedules immediately
+            if is_player_running():
+                print("🔄 Restarting playback engine to apply rebuilt schedules in StationManager...")
+                try:
+                    subprocess.call(["pkill", "-f", "field_player.py"])
+                    time.sleep(0.5)
+                    player_script = os.path.join(FS42_HOME, "field_player.py")
+                    subprocess.Popen(
+                        [VENV_PYTHON, player_script],
+                        cwd=FS42_HOME,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL
+                    )
+                except Exception as pe:
+                    print(f"Error restarting player after schedule rebuild: {pe}")
 
             self.send_response(200)
             self.send_header("Content-Type", "application/json")

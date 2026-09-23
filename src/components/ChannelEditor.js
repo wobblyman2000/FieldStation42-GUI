@@ -1105,13 +1105,16 @@ export class ChannelEditor {
       const res = await fetch('/api/rebuild_schedules', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ channel_id: this.currentChannel.id })
+        body: JSON.stringify({
+          station: conf.network_name,
+          channel_id: this.currentChannel.id || this.currentChannel.filename
+        })
       });
       if (res.ok) {
-        this.showToast('24/7 Multi-Show Schedule successfully compiled & active!', 'success');
+        this.showToast('24/7 Schedule successfully compiled & active!', 'success');
       }
     } catch (e) {
-      this.showToast('Schedule applied! Click "Update Catalog & Rescan Media" to sync playback.', 'info');
+      this.showToast('24/7 Schedule generated!', 'info');
     }
   }
 
