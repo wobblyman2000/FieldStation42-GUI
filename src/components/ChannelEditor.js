@@ -98,6 +98,7 @@ export class ChannelEditor {
     this.inputSoundPath = document.getElementById('input-sound-path');
 
     this.inputCommercialFree = document.getElementById('input-commercial-free');
+    this.inputSequentialPlayback = document.getElementById('input-sequential-playback');
     this.inputAspectRatio = document.getElementById('input-aspect-ratio');
     this.inputVideoScramble = document.getElementById('input-video-scramble');
     this.inputAudioScramble = document.getElementById('input-audio-scramble');
@@ -108,8 +109,8 @@ export class ChannelEditor {
       this.inputCallSign, this.inputDesc, this.inputParental, this.inputContentDir,
       this.inputStreamUrl, this.inputWebUrl, this.inputExecCmd,
       this.inputCommercialDir, this.inputBumpsDir, this.inputPlaySound,
-      this.inputSoundPath, this.inputCommercialFree, this.inputAspectRatio,
-      this.inputVideoScramble, this.inputAudioScramble
+      this.inputSoundPath, this.inputCommercialFree, this.inputSequentialPlayback,
+      this.inputAspectRatio, this.inputVideoScramble, this.inputAudioScramble
     ];
 
     formElements.forEach(el => {
@@ -131,6 +132,19 @@ export class ChannelEditor {
       });
       this.inputCommercialFree.addEventListener('change', () => {
         chkScheduleCommFree.checked = this.inputCommercialFree.checked;
+      });
+    }
+
+    const chkScheduleSeq = document.getElementById('chk-schedule-sequential-order');
+    if (chkScheduleSeq && this.inputSequentialPlayback) {
+      chkScheduleSeq.addEventListener('change', () => {
+        this.inputSequentialPlayback.checked = chkScheduleSeq.checked;
+        if (!this.isUpdatingFromCode && this.currentChannel) {
+          this.updateModelFromForm();
+        }
+      });
+      this.inputSequentialPlayback.addEventListener('change', () => {
+        chkScheduleSeq.checked = this.inputSequentialPlayback.checked;
       });
     }
 
@@ -333,9 +347,10 @@ export class ChannelEditor {
     if (chkInsertBumpers) chkInsertBumpers.checked = !!firstBumper;
     if (inputBumperSource && firstBumper) inputBumperSource.value = firstBumper;
 
-    const hasSequence = !!Object.values(conf.day_templates?.all_day || {}).find(s => s && s.sequence);
+    const hasSequence = conf.play_order === 'sequential' || conf.sequence === 'sequential' || !!Object.values(conf.day_templates?.all_day || {}).find(s => s && s.sequence);
     const chkSequentialOrder = document.getElementById('chk-schedule-sequential-order');
     if (chkSequentialOrder) chkSequentialOrder.checked = hasSequence;
+    if (this.inputSequentialPlayback) this.inputSequentialPlayback.checked = hasSequence;
 
     if (this.inputAspectRatio) this.inputAspectRatio.value = conf.aspect_ratio || '4:3';
     if (this.inputVideoScramble) this.inputVideoScramble.value = conf.video_scramble_fx || 'none';
@@ -398,6 +413,14 @@ export class ChannelEditor {
     conf.sound_to_play = this.inputSoundPath?.value || '';
 
     conf.commercial_free = !!this.inputCommercialFree?.checked;
+    if (this.inputSequentialPlayback?.checked) {
+      conf.sequence = "sequential";
+      conf.play_order = "sequential";
+    } else {
+      delete conf.sequence;
+      delete conf.play_order;
+    }
+
     conf.aspect_ratio = this.inputAspectRatio?.value || '4:3';
     conf.video_scramble_fx = this.inputVideoScramble?.value || 'none';
     conf.audio_scramble_fx = this.inputAudioScramble?.value || 'none';

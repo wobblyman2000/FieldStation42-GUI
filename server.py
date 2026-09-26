@@ -562,9 +562,20 @@ class FieldStationServerHandler(http.server.SimpleHTTPRequestHandler):
                 target_path = os.path.expanduser("~")
             elif target_path == "catalog":
                 target_path = CATALOG_DIR
+            elif target_path == "confs":
+                target_path = CONFS_DIR
 
-            if not os.path.isabs(target_path):
+            if target_path.startswith("~"):
+                target_path = os.path.expanduser(target_path)
+            elif not os.path.isabs(target_path):
                 target_path = os.path.abspath(os.path.join(FS42_HOME, target_path))
+
+            # Auto-ensure directory exists if inside FS42_HOME
+            if not os.path.exists(target_path) and target_path.startswith(FS42_HOME):
+                try:
+                    os.makedirs(target_path, exist_ok=True)
+                except Exception:
+                    pass
 
             if not os.path.exists(target_path) or not os.path.isdir(target_path):
                 target_path = os.path.expanduser("~")
@@ -624,6 +635,11 @@ class FieldStationServerHandler(http.server.SimpleHTTPRequestHandler):
             if not source_dir or not target_folder_name:
                 self.send_error(400, "Missing source_dir or target_folder_name")
                 return
+
+            if source_dir.startswith("~"):
+                source_dir = os.path.expanduser(source_dir)
+            elif not os.path.isabs(source_dir):
+                source_dir = os.path.abspath(os.path.join(FS42_HOME, source_dir))
 
             if not os.path.exists(source_dir):
                 self.send_error(404, f"Source directory does not exist: {source_dir}")
