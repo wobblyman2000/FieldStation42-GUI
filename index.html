@@ -295,6 +295,20 @@
                 <span class="field-hint">Station identification clips played between blocks.</span>
               </div>
 
+              <!-- 8:00 PM Prime Time Movie Special Feature -->
+              <div class="form-group col-12 card-box content-type-sec sec-standard sec-loop" style="border: 1px solid rgba(251, 191, 36, 0.3); background: rgba(251, 191, 36, 0.05);">
+                <h4 class="box-title" style="color: #fbbf24;"><i class="ri-clapperboard-line"></i> 🎬 8:00 PM Prime Time Feature Movie (`prime_time_movie`)</h4>
+                <p style="font-size: 0.82rem; color: var(--text-dim); margin-top: -6px; margin-bottom: 10px;">
+                  Schedule a blockbuster feature film for the 8:00 PM evening slot with on-screen promo billboards across the day!
+                </p>
+                <div class="input-with-action">
+                  <input type="text" id="input-prime-time-movie" class="form-input" placeholder="catalog/movies/jurassic_park.mp4" />
+                  <button type="button" class="btn btn-secondary btn-browse-dir-target" data-target="input-prime-time-movie">
+                    <i class="ri-folder-open-line"></i> Browse Movie
+                  </button>
+                </div>
+              </div>
+
               <!-- Guide Sound Directory -->
               <div class="form-group col-12 content-type-sec sec-guide hidden">
                 <div class="card-box">
@@ -681,6 +695,12 @@
                 <span class="osd-time" id="crt-osd-time">12:00 PM</span>
               </div>
 
+              <!-- On-Screen Prime Time Movie Promo Billboard -->
+              <div class="crt-promo-billboard hidden" id="crt-promo-billboard">
+                <div class="promo-tag">🎬 TONIGHT AT 8:00 PM</div>
+                <div class="promo-movie-title" id="promo-movie-name">PRIME TIME MOVIE FEATURE</div>
+              </div>
+
               <!-- CRT Content Simulation View -->
               <div class="crt-inner-view" id="crt-inner-view">
                 <div class="sim-content standard-sim" id="sim-standard">
@@ -688,6 +708,46 @@
                     <i class="ri-tv-line tv-big-icon"></i>
                     <div class="sim-program-title" id="sim-title">BROADCAST SIGNAL</div>
                     <div class="sim-program-sub" id="sim-sub">Schedule: Standard Programming</div>
+                  </div>
+                </div>
+
+                <!-- Animated Retro Cassette Deck & Winamp Spectrum Visualizer (For Audio Channels) -->
+                <div class="sim-content audio-visualizer-view hidden" id="sim-audio-visualizer">
+                  <div class="cassette-deck-box">
+                    <div class="cassette-header">
+                      <span class="audio-badge"><i class="ri-disc-line spin"></i> STEREO / DOLBY B</span>
+                      <span class="audio-freq">FM 104.2 MHz</span>
+                    </div>
+
+                    <!-- Spinning Cassette Reels -->
+                    <div class="cassette-housing">
+                      <div class="cassette-label" id="audio-track-title">NOW PLAYING: VINTAGE RADIO LINEUP</div>
+                      <div class="cassette-reels-window">
+                        <div class="reel reel-left">
+                          <div class="reel-spokes"></div>
+                        </div>
+                        <div class="tape-ribbon"></div>
+                        <div class="reel reel-right">
+                          <div class="reel-spokes"></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- 12-Band Winamp-Style Equalizer Spectrum Analyzer -->
+                    <div class="winamp-spectrum" id="winamp-spectrum">
+                      <div class="eq-bar"><div class="eq-fill"></div><div class="eq-peak"></div></div>
+                      <div class="eq-bar"><div class="eq-fill"></div><div class="eq-peak"></div></div>
+                      <div class="eq-bar"><div class="eq-fill"></div><div class="eq-peak"></div></div>
+                      <div class="eq-bar"><div class="eq-fill"></div><div class="eq-peak"></div></div>
+                      <div class="eq-bar"><div class="eq-fill"></div><div class="eq-peak"></div></div>
+                      <div class="eq-bar"><div class="eq-fill"></div><div class="eq-peak"></div></div>
+                      <div class="eq-bar"><div class="eq-fill"></div><div class="eq-peak"></div></div>
+                      <div class="eq-bar"><div class="eq-fill"></div><div class="eq-peak"></div></div>
+                      <div class="eq-bar"><div class="eq-fill"></div><div class="eq-peak"></div></div>
+                      <div class="eq-bar"><div class="eq-fill"></div><div class="eq-peak"></div></div>
+                      <div class="eq-bar"><div class="eq-fill"></div><div class="eq-peak"></div></div>
+                      <div class="eq-bar"><div class="eq-fill"></div><div class="eq-peak"></div></div>
+                    </div>
                   </div>
                 </div>
 

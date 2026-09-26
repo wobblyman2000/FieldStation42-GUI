@@ -847,6 +847,197 @@ input:checked + .slider:before { transform: translateX(22px); }
   color: #fff;
 }
 
+.crt-promo-billboard {
+  position: absolute;
+  top: 36px;
+  left: 10px;
+  right: 10px;
+  background: rgba(251, 191, 36, 0.18);
+  border: 1px solid rgba(251, 191, 36, 0.6);
+  border-radius: 4px;
+  padding: 4px 8px;
+  z-index: 8;
+  text-align: center;
+  backdrop-filter: blur(2px);
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
+  animation: pulsePromo 2s infinite alternate ease-in-out;
+}
+
+@keyframes pulsePromo {
+  0% { border-color: rgba(251, 191, 36, 0.4); box-shadow: 0 0 5px rgba(251, 191, 36, 0.2); }
+  100% { border-color: rgba(251, 191, 36, 0.9); box-shadow: 0 0 14px rgba(251, 191, 36, 0.6); }
+}
+
+.promo-tag {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #fbbf24;
+  letter-spacing: 1px;
+}
+
+.promo-movie-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Retro Cassette & Winamp Spectrum Visualizer */
+.audio-visualizer-view {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 6px;
+}
+
+.cassette-deck-box {
+  width: 95%;
+  background: rgba(10, 15, 28, 0.85);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  border-radius: 6px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
+}
+
+.cassette-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.68rem;
+  color: var(--primary-cyan);
+  font-family: var(--font-mono);
+}
+
+.cassette-housing {
+  background: #111827;
+  border: 1px solid #374151;
+  border-radius: 4px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.cassette-label {
+  font-size: 0.65rem;
+  font-weight: bold;
+  color: #fbbf24;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  text-transform: uppercase;
+}
+
+.cassette-reels-window {
+  width: 160px;
+  height: 36px;
+  background: #000;
+  border: 1px solid #4b5563;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  position: relative;
+}
+
+.tape-ribbon {
+  height: 4px;
+  flex: 1;
+  background: #78350f;
+  margin: 0 8px;
+}
+
+.reel {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #374151;
+  border: 2px solid #9ca3af;
+  position: relative;
+  animation: spinReels 2s linear infinite;
+}
+
+.reel-spokes {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 14px; height: 2px;
+  background: #fff;
+  transform: translate(-50%, -50%);
+}
+.reel-spokes::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 2px; height: 14px;
+  background: #fff;
+  transform: translate(-50%, -50%);
+}
+
+@keyframes spinReels {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Winamp-Style 12-Band Spectrum Equalizer */
+.winamp-spectrum {
+  display: flex;
+  gap: 3px;
+  height: 32px;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 3px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.eq-bar {
+  flex: 1;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: flex-end;
+  position: relative;
+  border-radius: 1px;
+}
+
+.eq-fill {
+  width: 100%;
+  height: 50%;
+  background: linear-gradient(to top, #00f0ff 0%, #10b981 60%, #fbbf24 85%, #f43f5e 100%);
+  border-radius: 1px;
+  animation: bounceEq 0.8s infinite alternate ease-in-out;
+}
+
+.winamp-spectrum .eq-bar:nth-child(1) .eq-fill { animation-delay: 0.1s; }
+.winamp-spectrum .eq-bar:nth-child(2) .eq-fill { animation-delay: 0.3s; }
+.winamp-spectrum .eq-bar:nth-child(3) .eq-fill { animation-delay: 0.15s; }
+.winamp-spectrum .eq-bar:nth-child(4) .eq-fill { animation-delay: 0.4s; }
+.winamp-spectrum .eq-bar:nth-child(5) .eq-fill { animation-delay: 0.25s; }
+.winamp-spectrum .eq-bar:nth-child(6) .eq-fill { animation-delay: 0.5s; }
+.winamp-spectrum .eq-bar:nth-child(7) .eq-fill { animation-delay: 0.2s; }
+.winamp-spectrum .eq-bar:nth-child(8) .eq-fill { animation-delay: 0.35s; }
+.winamp-spectrum .eq-bar:nth-child(9) .eq-fill { animation-delay: 0.45s; }
+.winamp-spectrum .eq-bar:nth-child(10) .eq-fill { animation-delay: 0.1s; }
+.winamp-spectrum .eq-bar:nth-child(11) .eq-fill { animation-delay: 0.3s; }
+.winamp-spectrum .eq-bar:nth-child(12) .eq-fill { animation-delay: 0.2s; }
+
+@keyframes bounceEq {
+  0% { height: 15%; }
+  50% { height: 85%; }
+  100% { height: 40%; }
+}
+
 .sim-program-sub {
   font-size: 0.75rem;
   color: var(--text-muted);

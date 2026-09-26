@@ -93,6 +93,7 @@ export class ChannelEditor {
     this.inputExecCmd = document.getElementById('input-exec-cmd');
     this.inputCommercialDir = document.getElementById('input-commercial-dir');
     this.inputBumpsDir = document.getElementById('input-station-bumps');
+    this.inputPrimeTimeMovie = document.getElementById('input-prime-time-movie');
 
     this.inputPlaySound = document.getElementById('input-play-sound');
     this.inputSoundPath = document.getElementById('input-sound-path');
@@ -108,9 +109,10 @@ export class ChannelEditor {
       this.inputName, this.inputNum, this.inputType, this.inputMediaFilter,
       this.inputCallSign, this.inputDesc, this.inputParental, this.inputContentDir,
       this.inputStreamUrl, this.inputWebUrl, this.inputExecCmd,
-      this.inputCommercialDir, this.inputBumpsDir, this.inputPlaySound,
-      this.inputSoundPath, this.inputCommercialFree, this.inputSequentialPlayback,
-      this.inputAspectRatio, this.inputVideoScramble, this.inputAudioScramble
+      this.inputCommercialDir, this.inputBumpsDir, this.inputPrimeTimeMovie,
+      this.inputPlaySound, this.inputSoundPath, this.inputCommercialFree,
+      this.inputSequentialPlayback, this.inputAspectRatio, this.inputVideoScramble,
+      this.inputAudioScramble
     ];
 
     formElements.forEach(el => {
@@ -333,6 +335,7 @@ export class ChannelEditor {
     if (this.inputExecCmd) this.inputExecCmd.value = conf.exec_command || '';
     if (this.inputCommercialDir) this.inputCommercialDir.value = conf.commercials_dir || conf.commercial_dir || '';
     if (this.inputBumpsDir) this.inputBumpsDir.value = conf.bumps_dir || conf.bump_dir || '';
+    if (this.inputPrimeTimeMovie) this.inputPrimeTimeMovie.value = conf.prime_time_movie || '';
 
     if (this.inputPlaySound) this.inputPlaySound.checked = conf.play_sound !== false;
     if (this.inputSoundPath) this.inputSoundPath.value = conf.sound_to_play || '';
@@ -407,6 +410,11 @@ export class ChannelEditor {
     if (this.inputBumpsDir?.value) {
       if ('bump_dir' in conf) conf.bump_dir = this.inputBumpsDir.value;
       else conf.bumps_dir = this.inputBumpsDir.value;
+    }
+    if (this.inputPrimeTimeMovie?.value) {
+      conf.prime_time_movie = this.inputPrimeTimeMovie.value;
+    } else {
+      delete conf.prime_time_movie;
     }
 
     conf.play_sound = !!this.inputPlaySound?.checked;

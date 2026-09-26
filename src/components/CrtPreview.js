@@ -7,9 +7,11 @@ export class CrtPreview {
     this.osdTime = document.getElementById('crt-osd-time');
     this.simTitle = document.getElementById('sim-title');
     this.simSub = document.getElementById('sim-sub');
-    this.simTypePill = document.getElementById('sim-type-pill');
-    this.scrambleLayer = document.getElementById('sim-scramble-layer');
-    this.btnTestScramble = document.getElementById('btn-test-scramble');
+    this.promoBillboard = document.getElementById('crt-promo-billboard');
+    this.promoMovieName = document.getElementById('promo-movie-name');
+    this.simStandard = document.getElementById('sim-standard');
+    this.simAudioVisualizer = document.getElementById('sim-audio-visualizer');
+    this.audioTrackTitle = document.getElementById('audio-track-title');
 
     this.isScrambledActive = false;
 
@@ -37,7 +39,7 @@ export class CrtPreview {
     if (this.btnTestScramble) {
       this.btnTestScramble.addEventListener('click', () => {
         this.isScrambledActive = !this.isScrambledActive;
-        this.scrambleLayer.classList.toggle('hidden', !this.isScrambledActive);
+        if (this.scrambleLayer) this.scrambleLayer.classList.toggle('hidden', !this.isScrambledActive);
         this.btnTestScramble.textContent = this.isScrambledActive ? 'CLEAR FX' : 'TEST FX';
       });
     }
@@ -77,12 +79,13 @@ export class CrtPreview {
     const chNum = conf.channel_number !== undefined ? String(conf.channel_number).padStart(2, '0') : '00';
     const name = conf.network_name || 'NO SIGNAL';
     const type = conf.network_type || 'standard';
+    const isAudio = type === 'audio' || conf.media_filter === 'audio';
 
     if (this.osdCh) this.osdCh.textContent = `CH ${chNum}`;
     if (this.osdName) this.osdName.textContent = name.toUpperCase();
     if (this.simTitle) this.simTitle.textContent = name;
     if (this.simSub) {
-      let desc = `Mode: ${type.toUpperCase()}`;
+      let desc = `Mode: ${isAudio ? 'AUDIO RADIO' : type.toUpperCase()}`;
       if (type === 'standard') desc += conf.content_dir ? ` | ${conf.content_dir}` : ' | Scheduled TV';
       else if (type === 'loop') desc += ` | Loop Dir: ${conf.content_dir || 'Default'}`;
       else if (type === 'streaming') desc += ` | Feed: ${conf.stream_url || 'HLS URL'}`;
@@ -92,8 +95,35 @@ export class CrtPreview {
     }
 
     if (this.simTypePill) {
-      this.simTypePill.textContent = type.toUpperCase();
-      this.simTypePill.className = `status-pill tag-${type.toLowerCase()}`;
+      const displayType = isAudio ? 'AUDIO' : type.toUpperCase();
+      this.simTypePill.textContent = displayType;
+      this.simTypePill.className = `status-pill tag-${displayType.toLowerCase()}`;
+    }
+
+    // Toggle Audio Cassette / Winamp Visualizer vs Standard TV graphic
+    if (this.simAudioVisualizer && this.simStandard) {
+      if (isAudio) {
+        this.simAudioVisualizer.classList.remove('hidden');
+        this.simStandard.classList.add('hidden');
+        if (this.audioTrackTitle) {
+          this.audioTrackTitle.textContent = `NOW PLAYING: ${name.toUpperCase()}`;
+        }
+      } else {
+        this.simAudioVisualizer.classList.add('hidden');
+        this.simStandard.classList.remove('hidden');
+      }
+    }
+
+    // Promo Billboard for 8:00 PM Prime Time Feature Movie
+    const primeMovie = conf.prime_time_movie;
+    if (this.promoBillboard) {
+      if (primeMovie) {
+        const cleanName = primeMovie.split('/').pop().replace(/\.[^/.]+$/, '').replace(/_+/g, ' ').toUpperCase();
+        if (this.promoMovieName) this.promoMovieName.textContent = cleanName;
+        this.promoBillboard.classList.remove('hidden');
+      } else {
+        this.promoBillboard.classList.add('hidden');
+      }
     }
 
     // Auto trigger scramble layer preview if video_scramble_fx is set
