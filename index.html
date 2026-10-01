@@ -393,6 +393,20 @@
               </div>
 
               <div class="form-group col-6 card-box">
+                <h4 class="box-title"><i class="ri-time-line"></i> Schedule Start Timing</h4>
+                <div class="toggle-row">
+                  <div class="toggle-label">
+                    <strong>⏰ Start Season 1 Episode 1 Now</strong>
+                    <p>Generates schedule starting immediately at current time so S01E01 starts now instead of 12 AM midnight.</p>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" id="input-start-from-current-time">
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="form-group col-6 card-box">
                 <h4 class="box-title"><i class="ri-aspect-ratio-line"></i> Aspect Ratio & Scaling</h4>
                 <label for="input-aspect-ratio">Channel Aspect Ratio</label>
                 <select id="input-aspect-ratio" class="form-select">
@@ -542,6 +556,19 @@
                       </div>
                       <label class="switch">
                         <input type="checkbox" id="chk-schedule-sequential-order" checked>
+                        <span class="slider round"></span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="form-group col-6">
+                    <div class="toggle-row" style="margin-top: 2px;">
+                      <div class="toggle-label">
+                        <strong style="color: var(--primary-cyan); font-size: 0.88rem;"><i class="ri-time-line"></i> Start Schedule From Current Time</strong>
+                        <p style="font-size: 0.78rem; color: var(--text-dim); margin-top: 2px;">Season 1 Episode 1 starts immediately right now when rebuilding catalog.</p>
+                      </div>
+                      <label class="switch">
+                        <input type="checkbox" id="chk-schedule-start-from-current-time">
                         <span class="slider round"></span>
                       </label>
                     </div>

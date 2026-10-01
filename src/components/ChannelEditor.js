@@ -100,6 +100,7 @@ export class ChannelEditor {
 
     this.inputCommercialFree = document.getElementById('input-commercial-free');
     this.inputSequentialPlayback = document.getElementById('input-sequential-playback');
+    this.inputStartFromCurrentTime = document.getElementById('input-start-from-current-time');
     this.inputAspectRatio = document.getElementById('input-aspect-ratio');
     this.inputVideoScramble = document.getElementById('input-video-scramble');
     this.inputAudioScramble = document.getElementById('input-audio-scramble');
@@ -111,8 +112,8 @@ export class ChannelEditor {
       this.inputStreamUrl, this.inputWebUrl, this.inputExecCmd,
       this.inputCommercialDir, this.inputBumpsDir, this.inputPrimeTimeMovie,
       this.inputPlaySound, this.inputSoundPath, this.inputCommercialFree,
-      this.inputSequentialPlayback, this.inputAspectRatio, this.inputVideoScramble,
-      this.inputAudioScramble
+      this.inputSequentialPlayback, this.inputStartFromCurrentTime, this.inputAspectRatio,
+      this.inputVideoScramble, this.inputAudioScramble
     ];
 
     formElements.forEach(el => {
@@ -147,6 +148,19 @@ export class ChannelEditor {
       });
       this.inputSequentialPlayback.addEventListener('change', () => {
         chkScheduleSeq.checked = this.inputSequentialPlayback.checked;
+      });
+    }
+
+    const chkScheduleStartNow = document.getElementById('chk-schedule-start-from-current-time');
+    if (chkScheduleStartNow && this.inputStartFromCurrentTime) {
+      chkScheduleStartNow.addEventListener('change', () => {
+        this.inputStartFromCurrentTime.checked = chkScheduleStartNow.checked;
+        if (!this.isUpdatingFromCode && this.currentChannel) {
+          this.updateModelFromForm();
+        }
+      });
+      this.inputStartFromCurrentTime.addEventListener('change', () => {
+        chkScheduleStartNow.checked = this.inputStartFromCurrentTime.checked;
       });
     }
 
@@ -355,6 +369,11 @@ export class ChannelEditor {
     if (chkSequentialOrder) chkSequentialOrder.checked = hasSequence;
     if (this.inputSequentialPlayback) this.inputSequentialPlayback.checked = hasSequence;
 
+    const startNow = !!conf.start_from_current_time || !!conf.schedule_from_current_time || !!conf.start_from_now;
+    if (this.inputStartFromCurrentTime) this.inputStartFromCurrentTime.checked = startNow;
+    const chkScheduleStartNow = document.getElementById('chk-schedule-start-from-current-time');
+    if (chkScheduleStartNow) chkScheduleStartNow.checked = startNow;
+
     if (this.inputAspectRatio) this.inputAspectRatio.value = conf.aspect_ratio || '4:3';
     if (this.inputVideoScramble) this.inputVideoScramble.value = conf.video_scramble_fx || 'none';
     if (this.inputAudioScramble) this.inputAudioScramble.value = conf.audio_scramble_fx || 'none';
@@ -427,6 +446,14 @@ export class ChannelEditor {
     } else {
       delete conf.sequence;
       delete conf.play_order;
+    }
+
+    if (this.inputStartFromCurrentTime?.checked) {
+      conf.start_from_current_time = true;
+    } else {
+      delete conf.start_from_current_time;
+      delete conf.schedule_from_current_time;
+      delete conf.start_from_now;
     }
 
     conf.aspect_ratio = this.inputAspectRatio?.value || '4:3';
@@ -1108,6 +1135,15 @@ export class ChannelEditor {
 
     if (isCommercialFree !== undefined) {
       conf.commercial_free = !!isCommercialFree;
+    }
+
+    const isStartNow = document.getElementById('chk-schedule-start-from-current-time')?.checked;
+    if (isStartNow) {
+      conf.start_from_current_time = true;
+    } else {
+      delete conf.start_from_current_time;
+      delete conf.schedule_from_current_time;
+      delete conf.start_from_now;
     }
 
     conf.schedule_increment = 30;
