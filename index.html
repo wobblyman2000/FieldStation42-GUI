@@ -222,6 +222,26 @@
 
           <!-- TAB 2: Content & Sources -->
           <div class="tab-pane" id="tab-content">
+            <div class="card-box" style="background: rgba(18, 25, 38, 0.7); border: 1px solid rgba(0, 229, 255, 0.25); border-radius: 10px; padding: 16px; margin-bottom: 18px;">
+              <h4 style="color: var(--primary-cyan); font-size: 0.95rem; margin-top: 0; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                <i class="ri-guide-line"></i> Quick 3-Step Guide: How to Add & Run Any New Channel
+              </h4>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; font-size: 0.82rem; color: var(--text-dim);">
+                <div style="background: rgba(255, 255, 255, 0.03); padding: 10px 12px; border-radius: 6px; border-left: 3px solid #00e5ff;">
+                  <strong style="color: #fff; display: block; margin-bottom: 4px;">Step 1: Create Folder & Symlinks</strong>
+                  Put videos directly inside <code>catalog/&lt;ChannelName&gt;/</code> (for Loop) or show subfolders (for Standard). Or click <strong>Import & Symlink Media</strong> below.
+                </div>
+                <div style="background: rgba(255, 255, 255, 0.03); padding: 10px 12px; border-radius: 6px; border-left: 3px solid #a855f7;">
+                  <strong style="color: #fff; display: block; margin-bottom: 4px;">Step 2: Set Content Dir & Save</strong>
+                  Set <strong>Content Directory</strong> to <code>catalog/&lt;ChannelName&gt;</code> and click <strong>Save Channel</strong>.
+                </div>
+                <div style="background: rgba(255, 255, 255, 0.03); padding: 10px 12px; border-radius: 6px; border-left: 3px solid #22c55e;">
+                  <strong style="color: #fff; display: block; margin-bottom: 4px;">Step 3: Rebuild Station Catalog</strong>
+                  Click <strong style="color:#00e5ff;">Rebuild Station Catalog</strong> (top right header). This updates <code>catalogs.db</code> so the player finds your files!
+                </div>
+              </div>
+            </div>
+
             <form id="form-content" class="form-grid">
               <!-- Content Dir Section (Standard / Loop / Audio / PPV) -->
               <div class="form-group col-12 content-type-sec sec-standard sec-loop sec-audio sec-ppv">

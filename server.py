@@ -645,9 +645,12 @@ class FieldStationServerHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_error(404, f"Source directory does not exist: {source_dir}")
                 return
 
-            clean_target_name = "".join(c if c.isalnum() or c in ("-", "_") else "_" for c in target_folder_name.strip())
-            rel_target_dir = os.path.join("catalog", clean_target_name)
-            abs_target_dir = os.path.join(CATALOG_DIR, clean_target_name)
+            target_clean = target_folder_name.strip()
+            if target_clean.startswith("catalog/"):
+                target_clean = target_clean[len("catalog/"):]
+
+            rel_target_dir = os.path.join("catalog", target_clean)
+            abs_target_dir = os.path.join(CATALOG_DIR, target_clean)
 
             os.makedirs(abs_target_dir, exist_ok=True)
 
@@ -665,8 +668,8 @@ class FieldStationServerHandler(http.server.SimpleHTTPRequestHandler):
                     if ext in VIDEO_EXTS or ext in AUDIO_EXTS:
                         source_item = os.path.join(root, item)
 
-                        if rel_root != ".":
-                            prefix = rel_root.replace(os.sep, "_").replace(" ", "_")
+                        if rel_root != "." and rel_root != target_clean:
+                            prefix = rel_root.replace(os.sep, "_")
                             symlink_name = f"{prefix}_{item}"
                         else:
                             symlink_name = item
@@ -1177,15 +1180,17 @@ class FieldStationServerHandler(http.server.SimpleHTTPRequestHandler):
         except Exception as e:
             self.send_error(500, f"Error sending OSD test signal: {e}")
 
+class ReusableTCPServer(socketserver.TCPServer):
+    allow_reuse_address = True
+
 if __name__ == "__main__":
     os.chdir(GUI_DIR)
-    socketserver.TCPServer.allow_reuse_address = True
     if flirc_enabled:
         start_remote_controller()
     if osd_enabled:
         start_osd()
 
-    with socketserver.TCPServer(("", PORT), FieldStationServerHandler) as httpd:
+    with ReusableTCPServer(("", PORT), FieldStationServerHandler) as httpd:
         print(f"📡 Field Station 42 Studio Server running at http://localhost:{PORT}")
         print(f"📂 Syncing directly with FieldStation42 installation at: {FS42_HOME}")
         print(f"🐍 Using FieldStation42 VirtualEnv Python: {VENV_PYTHON}")
